@@ -19,8 +19,30 @@ def R(s, a, b, cnt=1):
 # ---- HTML ----
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
+html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
+.splash.show { opacity: 1 } .splash.hide { opacity: 0 }
+.splash .sp-in { display: grid; gap: 10px; justify-items: center; max-width: 520px }
+.splash .sp-art { width: 132px; height: 132px; transform: translateY(18px) scale(.8); opacity: 0; transition: transform .8s cubic-bezier(.2,.9,.3,1.2) .1s, opacity .6s ease .1s }
+.splash .sp-art svg { width: 100%; height: 100% }
+.splash .sp-k { font-family: var(--f-mono); letter-spacing: .3em; font-size: .85rem; color: var(--gold); opacity: 0; transition: opacity .5s ease .35s }
+.splash h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(2rem, 9vw, 4.2rem); line-height: 1.15; word-break: keep-all; letter-spacing: .4em; opacity: 0; transition: letter-spacing 1.1s cubic-bezier(.2,.8,.2,1) .3s, opacity .7s ease .3s }
+.splash p { margin: 0; font-size: 1.05rem; word-break: keep-all; color: #C9C6D6; opacity: 0; transform: translateY(8px); transition: all .6s ease .8s }
+.splash .sp-tap { margin-top: 18px; font-size: .78rem; color: #A2A3B5; opacity: 0; transition: opacity .6s ease 1.4s }
+.splash.show .sp-art { transform: none; opacity: 1 } .splash.show .sp-k, .splash.show .sp-tap { opacity: 1 }
+.splash.show h2 { letter-spacing: .02em; opacity: 1 } .splash.show p { opacity: 1; transform: none }
+.splash.sp-night { background: radial-gradient(2px 2px at 18% 22%, #fff8, transparent), radial-gradient(1.5px 1.5px at 72% 14%, #fff9, transparent), radial-gradient(2px 2px at 84% 40%, #fff6, transparent), radial-gradient(1.5px 1.5px at 30% 64%, #fff5, transparent), radial-gradient(2px 2px at 60% 78%, #fff7, transparent), radial-gradient(1.5px 1.5px at 10% 86%, #fff5, transparent), radial-gradient(110% 80% at 50% 25%, #141936 0%, #05060D 70%) }
+.splash.sp-night h2 { color: #E9EEFF; text-shadow: 0 0 28px #9DB4FF66 }
+.splash.sp-night .sp-k { color: #9DB4FF }
+.splash.sp-dawn { background: linear-gradient(180deg, #2E2742 0%, #7A4A52 38%, #C9784E 62%, #E9A95A 82%, #F3C36E 100%) }
+.splash.sp-dawn .sp-art { width: 180px } .splash.sp-dawn .sun { transform: translateY(40px); transition: transform 1.6s cubic-bezier(.2,.8,.2,1) .2s }
+.splash.sp-dawn.show .sun { transform: none } .splash.sp-dawn h2 { color: #FFF4DC; text-shadow: 0 2px 24px #0006 } .splash.sp-dawn p { color: #F3E3C8 }
+.splash.sp-trial { background: radial-gradient(100% 80% at 50% 30%, #3A1714 0%, #0E0F17 70%) } .splash.sp-trial h2 { color: #FFB4A8 }
+.splash.sp-plaza, .splash.sp-wrap { background: radial-gradient(100% 80% at 50% 30%, #3A3018 0%, #0E0F17 70%) }
+.splash.sp-search, .splash.sp-judge { background: radial-gradient(100% 80% at 50% 30%, #123326 0%, #0E0F17 70%) }
+@media (prefers-reduced-motion: reduce) { .splash, .splash * { transition: none !important } }
 .nightp { border: 1px solid #2B2E4A; background: #0B0C16; border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px }
 .nightp h3 { margin: 0; font-size: 1.05rem; color: var(--night, #9DB4FF) }
 .nightp p { margin: 0; font-size: .92rem; color: var(--muted) }

@@ -1,15 +1,18 @@
 
 // ---------------- student: live phase subscription ----------------
-let NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
+let lastPhaseKey = null, NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
 function watchLive(code) {
   if (code === liveCode) return;
-  liveCode = code; if (liveSub) { liveSub(); liveSub = null; } NETLIVE = {}; liveErr = "";
+  liveCode = code; lastPhaseKey = null; if (liveSub) { liveSub(); liveSub = null; } NETLIVE = {}; liveErr = "";
   watchBoard(null);
   if (!code) return;
   NET.ensureAnon().then(() => {
     if (liveCode !== code) return;
     liveSub = NET.watch(roomPath(code) + "/live", (v, err) => {
       liveErr = err ? "서버에 연결하지 못했습니다. 선생님께 알려 주세요." : "";
+      const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
+      if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
+      lastPhaseKey = pk;
       NETLIVE[code] = v; renderLive(); renderNight();
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
@@ -129,3 +132,41 @@ function renderAuth() {
 function setSync(state, msg) { $("syncDot").className = "dot " + (state === "err" ? "err" : state === "on" || state === "wait" ? "on" : ""); $("syncMsg").textContent = msg || ""; }
 let resetArm = 0;
 function confirmReset() { const b = $("tallyReset"); if (Date.now() - resetArm < 4000) { resetArm = 0; return true; } resetArm = Date.now(); if (b) b.textContent = "한 번 더 누르면 초기화"; setTimeout(() => { if ($("tallyReset")) $("tallyReset").textContent = "휴대폰 선택 초기화"; }, 4000); return false; }
+
+// ---------------- student: full-screen splash when the teacher moves to a new phase ----------------
+const SPLASH = {
+  "밤": ["night", "밤이 되었습니다", "고개를 숙이고 휴대폰만 보세요"],
+  "아침 뉴스": ["dawn", "아침이 밝았습니다", "고개를 들고 아침 뉴스를 들으세요"],
+  "진영 회의": ["meet", "작전 회의", "같은 편끼리 모여 근거와 발언 순서를 정하세요"],
+  "입론": ["talk", "입론 시작", "한 사람당 30초, 발언 틀을 사용하세요"],
+  "검색": ["search", "검색 시간", "확인할 근거를 먼저 말하고 휴대폰을 드세요"],
+  "반론·질문": ["talk", "반론과 질문", "휴대폰을 내려놓고 질문 카드를 쓰세요"],
+  "심판 판정": ["judge", "판정의 시간", "심판의 판정과 오늘의 MVP를 기다리세요"],
+  "광장 대표토론": ["plaza", "광장이 열렸습니다", "구역 대표들이 광장에 섭니다"],
+  "광장 재판": ["trial", "광장 재판", "가장 의심스러운 사람은 누구일까요?"],
+  "정리": ["wrap", "오늘의 결과", "점수와 소식을 확인하세요"]
+};
+const SP_ART = {
+  night: `<svg viewBox="0 0 120 120" aria-hidden="true"><defs><mask id="spm"><rect width="120" height="120" fill="#fff"/><circle cx="78" cy="48" r="30" fill="#000"/></mask></defs><circle cx="60" cy="60" r="34" fill="#E9EEFF" mask="url(#spm)"/></svg>`,
+  dawn: `<svg viewBox="0 0 160 110" aria-hidden="true"><defs><clipPath id="spc"><rect width="160" height="79"/></clipPath></defs><g class="sun" clip-path="url(#spc)"><circle cx="80" cy="78" r="30" fill="#F4C55B"/>${[...Array(9)].map((_, i) => { const a = Math.PI * (i / 8); return `<line x1="${80 - Math.cos(a) * 40}" y1="${78 - Math.sin(a) * 40}" x2="${80 - Math.cos(a) * 54}" y2="${78 - Math.sin(a) * 54}" stroke="#F4C55B" stroke-width="5" stroke-linecap="round"/>`; }).join("")}</g><line x1="10" y1="78" x2="150" y2="78" stroke="#F4C55B" stroke-width="3" stroke-linecap="round"/></svg>`,
+  meet: `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="40" cy="48" r="14" fill="#63A9E6"/><circle cx="80" cy="48" r="14" fill="#63A9E6"/><circle cx="60" cy="40" r="14" fill="#EEE8DC"/><rect x="22" y="66" width="76" height="30" rx="15" fill="#2A3A55"/></svg>`,
+  talk: `<svg viewBox="0 0 120 120" aria-hidden="true"><rect x="14" y="26" width="64" height="44" rx="12" fill="#63A9E6"/><path d="M30 70 l0 16 l16 -16z" fill="#63A9E6"/><rect x="48" y="50" width="58" height="40" rx="12" fill="#EE9255"/><path d="M92 90 l0 14 l-14 -14z" fill="#EE9255"/></svg>`,
+  search: `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="52" cy="52" r="26" fill="none" stroke="#4CC08F" stroke-width="10"/><line x1="72" y1="72" x2="98" y2="98" stroke="#4CC08F" stroke-width="12" stroke-linecap="round"/></svg>`,
+  judge: `<svg viewBox="0 0 120 120" aria-hidden="true"><rect x="30" y="30" width="56" height="22" rx="6" fill="#4CC08F" transform="rotate(-30 58 41)"/><rect x="54" y="52" width="10" height="48" rx="5" fill="#4CC08F" transform="rotate(-30 59 76)"/><rect x="20" y="96" width="60" height="10" rx="5" fill="#EEE8DC"/></svg>`,
+  plaza: `<svg viewBox="0 0 120 120" aria-hidden="true"><path d="M20 50 L60 22 L100 50z" fill="#E5B550"/><rect x="28" y="54" width="10" height="40" fill="#EEE8DC"/><rect x="55" y="54" width="10" height="40" fill="#EEE8DC"/><rect x="82" y="54" width="10" height="40" fill="#EEE8DC"/><rect x="18" y="96" width="84" height="10" rx="3" fill="#E5B550"/></svg>`,
+  trial: `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="44" r="20" fill="#3A3D52"/><path d="M28 100 q32 -44 64 0z" fill="#3A3D52"/><circle cx="53" cy="42" r="3" fill="#E0533F"/><circle cx="67" cy="42" r="3" fill="#E0533F"/><text x="60" y="30" text-anchor="middle" font-size="34" font-weight="800" fill="#E0533F">?</text></svg>`,
+  wrap: `<svg viewBox="0 0 120 120" aria-hidden="true"><path d="M60 14 l12 26 28 3 -21 19 6 28 -25 -14 -25 14 6 -28 -21 -19 28 -3z" fill="#E5B550"/></svg>`
+};
+let splashTimer = null;
+function showSplash(e) {
+  if ($("viewStudent").hidden) return;
+  const [kind, title, sub] = SPLASH[e.phase] || ["wrap", e.phase, "선생님 안내를 따르세요"];
+  const el = $("splash");
+  el.className = `splash sp-${kind}`;
+  el.innerHTML = `<div class="sp-in"><div class="sp-art">${SP_ART[kind] || ""}</div><div class="sp-k">DAY ${e.day}${e.day === 1 ? " · 연습" : ""}</div><h2>${esc(title)}</h2><p>${esc(sub)}</p><span class="sp-tap">화면을 누르면 닫힙니다</span></div>`;
+  el.hidden = false; void el.offsetWidth; el.classList.add("show");
+  try { if (navigator.vibrate) navigator.vibrate(kind === "night" ? [80, 120, 80] : 120); } catch {}
+  clearTimeout(splashTimer); splashTimer = setTimeout(hideSplash, kind === "night" || kind === "dawn" ? 3600 : 2600);
+}
+function hideSplash() { const el = $("splash"); if (el.hidden) return; el.classList.remove("show"); el.classList.add("hide"); setTimeout(() => { el.hidden = true; el.classList.remove("hide"); }, 450); }
+$("splash").onclick = hideSplash;
