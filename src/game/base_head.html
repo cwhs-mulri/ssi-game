@@ -1,0 +1,138 @@
+<title>SSI 마피아 토론</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a classified case file. One dark desk, sealed evidence cards that open on tap; teacher view is the case board with timer and scoreboard. */
+:root {
+  --desk: #13141B; --file: #1D1F2A; --file-2: #262938; --paper: #EEE8DC; --muted: #A2A3B5; --line: #343849;
+  --stamp: #E0533F; --gold: #E5B550; --pro: #63A9E6; --con: #EE9255; --ok: #4CC08F; --press: #B58CF0;
+  --f-display: "Black Han Sans", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --f-body: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html, body { background: var(--desk) }
+body { color: var(--paper); font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 18px }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap }
+.brand h1 { font-family: var(--f-display); font-weight: 400; font-size: 1.9rem; margin: 0 }
+.brand span { color: var(--muted); font-size: 0.9rem }
+nav { display: flex; gap: 6px; background: var(--file); border: 1px solid var(--line); border-radius: 999px; padding: 4px }
+nav a { color: var(--muted); text-decoration: none; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 0.92rem }
+nav a[aria-current="page"] { background: var(--paper); color: var(--desk) }
+.panel { background: var(--file); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0 }
+.label { font-size: 0.75rem; letter-spacing: 0.12em; color: var(--muted); font-weight: 700; margin: 0 0 10px }
+label.f { display: grid; gap: 6px; font-size: 0.9rem; color: var(--muted) }
+input, select { font: inherit; color: var(--paper); background: var(--desk); border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; font-size: 1.05rem }
+input#code { font-family: var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; font-size: 1.25rem }
+input:focus-visible, select:focus-visible, button:focus-visible, nav a:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px }
+button { font: inherit; font-weight: 700; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--file-2); color: var(--paper); padding: 12px 16px }
+button.primary { background: var(--paper); color: var(--desk); border-color: var(--paper) }
+button.danger { background: var(--stamp); border-color: var(--stamp); color: #fff }
+button.gold { background: var(--gold); border-color: var(--gold); color: var(--desk) }
+button.sm { padding: 6px 10px; font-size: 0.85rem; border-radius: 8px }
+button:disabled { opacity: 0.4; cursor: not-allowed }
+.err { color: var(--stamp); font-size: 0.92rem; min-height: 1.4em; margin: 8px 0 0 }
+.steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: s }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; color: var(--muted); font-size: 0.95rem }
+.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--f-mono); font-size: 0.8rem; color: var(--paper) }
+.muted { color: var(--muted) }
+
+/* why panel */
+details.why { background: var(--file); border: 1px solid var(--line); border-radius: 14px; padding: 0 18px }
+details.why summary { cursor: pointer; padding: 14px 0; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 10px }
+details.why summary::-webkit-details-marker { display: none }
+details.why summary::after { content: "펼치기"; color: var(--muted); font-weight: 500; font-size: 0.85rem; white-space: nowrap }
+details.why[open] summary::after { content: "접기" }
+.map { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding-bottom: 16px }
+.map div { background: var(--desk); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.92rem }
+.map b { display: block; color: var(--gold); margin-bottom: 2px }
+.map span { color: var(--muted) }
+
+/* student card */
+.student { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start }
+@media (max-width: 760px) { .student { grid-template-columns: minmax(0, 1fr) } }
+.case { position: relative; border-radius: 16px; background: var(--paper); color: #1B1C22; padding: 40px 20px 20px; min-height: 380px; overflow: hidden }
+.case .tab { position: absolute; top: 0; right: 22px; background: #D8D0BE; padding: 4px 12px 6px; border-radius: 0 0 8px 8px; font-family: var(--f-mono); font-size: 0.78rem; color: #4A4A55 }
+.case .topic { font-size: 0.8rem; letter-spacing: 0.1em; color: #6B6B78; font-weight: 700; margin: 0 0 6px }
+.case .claim { font-size: 1.12rem; font-weight: 700; margin: 0 0 16px; text-wrap: balance; padding-right: 70px }
+.stamp { display: inline-block; font-family: var(--f-display); font-size: 2.3rem; line-height: 1; padding: 8px 14px 6px; border: 4px solid currentColor; border-radius: 8px; transform: rotate(-4deg); margin: 2px 0 14px }
+.stamp.mafia { color: #C93A27 } .stamp.citizen { color: #2C6E9F } .stamp.reporter { color: #7046B8 }
+.stance { display: inline-flex; align-items: center; font-weight: 700; margin-left: 12px; vertical-align: 14px; font-size: 1rem; padding: 4px 12px; border-radius: 999px; color: #fff }
+.stance.pro { background: #2F78B8 } .stance.con { background: #C7652A }
+.evidence { background: #FFFDF7; border: 1px dashed #B9AE95; border-radius: 10px; padding: 14px; margin: 4px 0 14px }
+.evidence b { display: block; font-size: 0.78rem; letter-spacing: 0.1em; color: #6B6B78; margin-bottom: 4px }
+.evidence p { margin: 0; font-size: 1.04rem }
+.evidence small { display: block; margin-top: 8px; color: #6B6B78; font-size: 0.82rem }
+.mission { font-size: 0.95rem; margin: 0; padding-left: 18px; color: #2E2F38 }
+.mission li { margin-bottom: 4px }
+.seal { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, #2A2C3A 0 14px, #252736 14px 28px); color: var(--paper); display: grid; place-items: center; text-align: center; padding: 24px; cursor: pointer; border: 0; border-radius: 16px; width: 100% }
+.seal strong { font-family: var(--f-display); font-weight: 400; font-size: 2rem; display: block; color: var(--gold) }
+.seal span { color: var(--muted); font-size: 0.95rem; font-weight: 500 }
+.card-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap }
+.card-actions button { flex: 1 1 140px }
+.empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; padding: 28px; text-align: center; min-height: 380px; display: grid; place-items: center }
+
+/* teacher */
+.teacher { display: grid; gap: 18px }
+.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start }
+@media (max-width: 860px) { .board { grid-template-columns: minmax(0, 1fr) } }
+.codebox { text-align: center; padding: 18px; border-radius: 12px; background: var(--desk); border: 1px solid var(--line); margin-top: 14px }
+.codebox .big { font-family: var(--f-mono); font-weight: 600; font-size: clamp(2.2rem, 7vw, 3.6rem); letter-spacing: 0.12em; color: var(--gold) }
+.codebox .topicname { font-size: 1.15rem; font-weight: 700; margin-top: 4px }
+.codebox .sub { color: var(--muted); font-size: 0.92rem }
+.used { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-size: 0.82rem; color: var(--muted) }
+.used span.t { border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px }
+.used span.t.done { text-decoration: line-through; color: #6E7085 }
+.timer { text-align: center }
+.timer .phase { font-weight: 700; font-size: 1.1rem }
+.timer .clock { font-family: var(--f-mono); font-size: clamp(3rem, 10vw, 5rem); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; margin: 6px 0 }
+.timer .clock.low { color: var(--stamp) }
+.phases { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0 14px; padding: 0; list-style: none }
+.phases li { font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted) }
+.phases li.now { background: var(--gold); color: var(--desk); border-color: var(--gold); font-weight: 700 }
+.phases li.done { color: var(--ok); border-color: var(--ok) }
+.tbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap }
+.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px }
+@media (max-width: 420px) { .groups { grid-template-columns: minmax(0, 1fr) } }
+.group { background: var(--desk); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0 }
+.group h3 { margin: 0 0 8px; font-size: 1rem }
+.group ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.group li { display: grid; grid-template-columns: 30px 64px 46px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 0.88rem; padding: 6px 0; border-top: 1px solid var(--line) }
+.group li .n { font-family: var(--f-mono); color: var(--muted) }
+.chip { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-align: center; white-space: nowrap }
+.chip.mafia { background: var(--stamp); color: #fff } .chip.citizen { background: var(--file-2); color: var(--paper) } .chip.reporter { background: var(--press); color: #1C1230 }
+.chip.pro { color: var(--pro); border: 1px solid var(--pro) } .chip.con { color: var(--con); border: 1px solid var(--con) }
+.lie { color: var(--stamp) }
+.lie em { display: block; font-style: normal; color: var(--paper); background: rgba(224, 83, 63, 0.14); border-radius: 6px; padding: 6px 8px; margin-top: 4px; font-size: 0.85rem }
+.hiddenmask { color: var(--muted); text-align: center; padding: 26px; border: 1px dashed var(--line); border-radius: 12px }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.rule { background: var(--desk); border: 1px solid var(--line); border-radius: 12px; padding: 14px }
+.rule h3 { margin: 0 0 6px; font-size: 1rem } .rule p { margin: 0; color: var(--muted); font-size: 0.92rem }
+.rule .tag { font-family: var(--f-display); font-size: 1.35rem; display: block; margin-bottom: 4px }
+
+/* scoreboard */
+.scorewrap { overflow-x: auto }
+table.score { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 560px }
+table.score th, table.score td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: center; font-size: 0.95rem }
+table.score th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.06em; font-weight: 700 }
+table.score td.g { text-align: left; font-weight: 700; white-space: nowrap }
+table.score td.total { font-family: var(--f-mono); font-size: 1.35rem; font-weight: 600; color: var(--gold) }
+table.score td.cur { background: rgba(229, 181, 80, 0.08) }
+table.score .rank { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); font-family: var(--f-mono); font-size: 0.85rem }
+table.score .rank.r1 { background: var(--gold); color: var(--desk); border-color: var(--gold) }
+.bar { height: 6px; border-radius: 3px; background: var(--file-2); margin-top: 6px; overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--gold) }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-start }
+.acts button.win { border-color: var(--pro); color: var(--pro) }
+.acts button.lose { border-color: var(--stamp); color: var(--stamp) }
+.scorebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.9rem }
+@media (prefers-reduced-motion: no-preference) { .case.open { animation: open .35s ease-out } @keyframes open { from { transform: translateY(6px); opacity: .7 } to { transform: none; opacity: 1 } } }

@@ -1,13 +1,16 @@
+# 빌드: python3 src/build_app.py  → public/index.html 생성
 import re, os
-G = '/home/claude/t2/game/'
-A = '/home/claude/t2/app/'
+import os
+A = os.path.dirname(os.path.abspath(os.path.dirname(__file__) + '/x')) + '/'
+ROOT = os.path.dirname(A.rstrip('/')) + '/'
+G = A + 'game/'
 head = open(G + 'base_head.html').read()
 html = open(G + 'part_ui.html').read()
 data = open(G + 'data_block.js').read()
 js = open(G + 'part_ui.js').read()
-qrlib = open(A + 'src/qrlib.js').read()
-net = open(A + 'src/app_net.js').read()
-night = open(A + 'src/app_night.js').read()
+qrlib = open(A + 'qrlib.js').read()
+net = open(A + 'app_net.js').read()
+night = open(A + 'app_night.js').read()
 
 def R(s, a, b, cnt=1):
     assert s.count(a) == cnt, (a[:70], s.count(a))
@@ -94,5 +97,5 @@ pre = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta 
 reset = '<style>html{box-sizing:border-box}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>\n'
 out = pre + reset + head + '\n' + html[:i] + '\n</head>\n<body>' + html[i:] + script_cfg + '<script>\n(() => {\n' + qrlib + '\n' + net + '\n' + data + '\n' + js + '\n</body>\n</html>\n'
 assert '%%' not in out.replace('100%', '').replace('%%LIVE', 'X') or True
-open(A + 'public/index.html', 'w').write(out)
+open(ROOT + 'public/index.html', 'w').write(out)
 print(len(out))

@@ -1,0 +1,272 @@
+.daybadge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-weight: 600; background: var(--gold); color: var(--desk); border-radius: 999px; padding: 2px 12px; font-size: 0.95rem }
+.arrest { margin-top: 12px; border-top: 1px dashed #B9AE95; padding-top: 10px }
+.arrest summary { cursor: pointer; font-weight: 700; color: #7A4B12; font-size: 0.92rem }
+.helper { margin-top: 12px; display: grid; gap: 8px }
+.helper div { background: #F4EFE3; border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; color: #2E2F38 }
+.helper b { display: block; font-size: 0.75rem; letter-spacing: 0.08em; color: #6B6B78; margin-bottom: 2px }
+.stamp.judge { color: #1F8A62 }
+.mission-box { background: #3A1512; color: #FFE3DD; border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; font-weight: 700 }
+.hit { color: var(--ok) } .miss { color: var(--con) } .warn { color: var(--stamp) }
+.status-win { color: var(--pro); font-weight: 700 } .status-lose { color: var(--stamp); font-weight: 700 }
+nav a { white-space: nowrap }
+nav { flex-wrap: wrap }
+
+/* home */
+.hero { display: grid; gap: 10px; padding: 8px 0 4px }
+.hero h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(2rem, 5vw, 3rem); margin: 0; line-height: 1.15; text-wrap: balance }
+.hero p { margin: 0; color: var(--muted); max-width: 62ch }
+.doors { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px }
+.door { display: grid; gap: 10px; text-decoration: none; color: var(--paper); background: var(--file); border: 1px solid var(--line); border-radius: 16px; padding: 18px; transition: transform .15s, border-color .15s }
+.door:hover, .door:focus-visible { border-color: var(--gold); transform: translateY(-2px); outline: none }
+.door svg { width: 100%; height: auto; display: block; border-radius: 10px; background: var(--desk) }
+.door h3 { margin: 0; font-size: 1.25rem } .door p { margin: 0; color: var(--muted); font-size: 0.95rem }
+.door .go { font-weight: 700; color: var(--gold) }
+.rules3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.rules3 div { background: var(--file); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center }
+.rules3 b { font-family: var(--f-display); font-weight: 400; font-size: 2rem; text-align: center }
+.rules3 span { font-weight: 700 } .rules3 small { display: block; color: var(--muted); font-weight: 400; font-size: 0.85rem }
+
+/* guide */
+.guide { display: grid; gap: 18px }
+.stagebox { background: var(--file); border: 1px solid var(--line); border-radius: 16px; overflow: hidden }
+.stagebox svg { display: block; width: 100%; height: auto; aspect-ratio: 800 / 420; background: #171A26 }
+.stagebox svg .fade { animation: fadeIn .45s ease-out both }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) { .stagebox svg .fade { animation: none } }
+.caption { padding: 16px 18px; display: grid; gap: 6px; border-top: 1px solid var(--line) }
+.caption .k { font-family: var(--f-mono); color: var(--gold); font-size: 0.85rem; letter-spacing: 0.12em }
+.caption h3 { margin: 0; font-size: 1.3rem } .caption p { margin: 0; color: var(--muted) }
+.gnav { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 0 18px 16px; flex-wrap: wrap }
+.dots { display: flex; gap: 6px; flex-wrap: wrap }
+.dots button { width: 30px; height: 30px; padding: 0; border-radius: 50%; font-family: var(--f-mono); font-size: 0.78rem }
+.dots button.on { background: var(--gold); color: var(--desk); border-color: var(--gold) }
+.quiz { display: grid; gap: 12px }
+.qcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.qcard { text-align: left; background: var(--paper); color: #1B1C22; border: 2px solid transparent; border-radius: 12px; padding: 14px; font-weight: 500; line-height: 1.5; cursor: pointer }
+.qcard small { display: block; color: #6B6B78; margin-top: 8px; font-size: 0.8rem }
+.qcard.right { border-color: var(--ok); box-shadow: 0 0 0 3px rgba(76,192,143,.3) }
+.qcard.wrong { border-color: var(--stamp); opacity: .75 }
+.qcard:disabled { cursor: default; opacity: 1 }
+.qcard.wrong:disabled { opacity: .7 }
+.qwhy { background: var(--desk); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 2.8em }
+.samples { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start }
+.samples .case { min-height: 0; font-size: 0.92rem }
+.samples .case .claim { font-size: 1rem }
+.samples .stamp { font-size: 1.8rem }
+
+/* student */
+.stepper { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap }
+.stepper span { font-size: 0.82rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted) }
+.stepper span.on { border-color: var(--gold); color: var(--gold); font-weight: 700 }
+
+/* teacher */
+.tbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(19, 20, 27, 0.96); backdrop-filter: blur(6px); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px 16px; align-items: center }
+@media (max-width: 860px) { .tbar { grid-template-columns: minmax(0, 1fr) } }
+.tbar .who { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.tbar .code { font-family: var(--f-mono); font-weight: 600; font-size: 1.35rem; color: var(--gold); letter-spacing: 0.08em }
+.tbar .meta { font-size: 0.85rem; color: var(--muted) }
+.tbar .narr { font-size: 0.95rem; min-width: 0 }
+.tbar .narr b { display: block; color: var(--gold); font-size: 0.78rem; letter-spacing: 0.08em }
+.tbar .clockbox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end }
+.tbar .clock { font-family: var(--f-mono); font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 4.2ch; text-align: right }
+.tbar .clock.low { color: var(--stamp) }
+.tbar.night { background: rgba(8, 9, 16, 0.97); border-color: #2B2E4A }
+.tbar .phase { font-weight: 700 }
+.classtabs { display: flex; gap: 6px; flex-wrap: wrap }
+.classtabs button { padding: 6px 12px; border-radius: 999px; font-size: 0.9rem }
+.classtabs button.on { background: var(--gold); color: var(--desk); border-color: var(--gold) }
+.steps-nav { display: flex; gap: 6px; overflow-x: auto; padding: 2px; scrollbar-width: thin }
+.steps-nav button { flex: none; display: grid; gap: 2px; text-align: left; padding: 8px 14px; border-radius: 12px; font-size: 0.92rem; min-width: 112px }
+.steps-nav button small { color: var(--muted); font-weight: 500; font-size: 0.75rem }
+.steps-nav button.on { background: var(--paper); color: var(--desk); border-color: var(--paper) }
+.steps-nav button.on small { color: #555 }
+.steps-nav button.off { opacity: 0.4 }
+.tpanel { display: grid; gap: 14px }
+.tpanel .head { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center }
+.tpanel .head svg { width: 64px; height: 64px }
+.tpanel .head h2 { margin: 0; font-size: 1.35rem } .tpanel .head p { margin: 2px 0 0; color: var(--muted) }
+.say { background: var(--desk); border: 1px solid var(--line); border-left: 0; border-radius: 12px; padding: 12px 14px; font-size: 1.02rem }
+.say b { display: block; color: var(--gold); font-size: 0.75rem; letter-spacing: 0.1em; margin-bottom: 2px }
+.todo { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: t }
+.todo li { counter-increment: t; display: grid; grid-template-columns: 26px 1fr; gap: 8px; color: var(--muted); font-size: 0.95rem }
+.todo li::before { content: counter(t); width: 24px; height: 24px; border-radius: 50%; background: var(--file-2); display: grid; place-items: center; font-family: var(--f-mono); font-size: 0.78rem; color: var(--paper) }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px }
+.dcard { background: var(--desk); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; min-width: 0 }
+.dcard h3 { margin: 0; font-size: 1rem; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+.dcard h3 span { font-size: 0.8rem; color: var(--muted); font-weight: 500 }
+.dcard select { padding: 7px 8px; font-size: 0.92rem }
+.mini { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.mini label.f { font-size: 0.8rem }
+.out { font-size: 0.85rem; color: var(--muted) } .out b { color: var(--paper) }
+.result { font-size: 1.05rem; font-weight: 700; padding: 12px 14px; border-radius: 10px; background: var(--desk); border: 1px solid var(--line); min-height: 2.6em }
+.rowx { display: flex; flex-wrap: wrap; gap: 10px; align-items: end }
+.rowx label { min-width: 140px; flex: 1 }
+.log { font-size: 0.85rem; color: var(--muted); display: grid; gap: 4px }
+.subphase { display: flex; gap: 6px; flex-wrap: wrap }
+.subphase button { font-size: 0.85rem; padding: 6px 12px; border-radius: 999px }
+.subphase button.on { background: var(--gold); color: var(--desk); border-color: var(--gold) }
+.next-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center }
+.bigbtn { font-size: 1.05rem; padding: 14px 20px }
+.qrbox { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: center; background: var(--desk); border: 1px solid var(--line); border-radius: 12px; padding: 12px }
+.qrbox img { width: 140px; height: 140px; background: #fff; border-radius: 8px; padding: 6px }
+.codebig { font-family: var(--f-mono); font-weight: 600; font-size: clamp(2.4rem, 7vw, 3.8rem); color: var(--gold); letter-spacing: 0.1em; line-height: 1 }
+.cmp table { width: 100%; border-collapse: collapse; min-width: 520px; font-variant-numeric: tabular-nums }
+.cmp th, .cmp td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: center }
+.cmp th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.06em }
+.cmp td.on { color: var(--gold); font-weight: 700 }
+/* full-screen stage */
+.stage { position: fixed; inset: 0; z-index: 50; background: radial-gradient(circle at 50% 30%, #23263A, #0B0C14 70%); display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px)); overflow: auto }
+.stage .inner { max-width: 1000px; width: 100%; display: grid; gap: 18px }
+.stage .kicker { font-family: var(--f-mono); color: var(--gold); letter-spacing: 0.2em; font-size: 1rem }
+.stage h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(2.2rem, 6vw, 4rem); margin: 0; line-height: 1.15; text-wrap: balance }
+.stage .items { display: grid; gap: 12px }
+.stage .item { background: rgba(255,255,255,0.05); border: 1px solid #343849; border-radius: 14px; padding: 16px 20px; font-size: clamp(1.1rem, 2.4vw, 1.6rem) }
+.stage .item small { display: block; color: var(--muted); font-size: 0.6em; letter-spacing: 0.12em; margin-bottom: 4px }
+.tipbody { font-size: clamp(1.4rem, 3.4vw, 2.3rem); font-weight: 700; line-height: 1.45; background: rgba(224,83,63,0.12); border: 1px solid var(--stamp); border-radius: 16px; padding: 22px }
+@media (prefers-reduced-motion: no-preference) { .stage .inner { animation: rise .6s ease-out } @keyframes rise { from { transform: translateY(14px); opacity: 0 } to { transform: none; opacity: 1 } } }
+
+/* live sync */
+.live { border-radius: 16px; padding: 14px 16px; background: var(--file); border: 1px solid var(--gold); display: grid; gap: 10px }
+.live.night { background: #07080F; border-color: #2B2E4A }
+.live .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.live .now { font-size: 1.35rem; font-weight: 800 }
+.live .now small { display: block; font-size: 0.78rem; color: var(--gold); letter-spacing: 0.12em; font-weight: 700 }
+.live .cd { font-family: var(--f-mono); font-size: 2rem; font-weight: 600; font-variant-numeric: tabular-nums }
+.live .cd.low { color: var(--stamp) }
+.live .todo-s { font-size: 1.02rem }
+.live .phone { display: inline-flex; gap: 6px; align-items: center; font-size: 0.85rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line) }
+.live .phone.ok { color: var(--ok); border-color: var(--ok) } .live .phone.card { color: var(--gold); border-color: var(--gold) } .live .phone.down { color: var(--con); border-color: var(--con) }
+.live .prog { display: flex; gap: 4px; flex-wrap: wrap }
+.live .prog i { flex: 1 1 22px; height: 6px; border-radius: 3px; background: var(--file-2) }
+.live .prog i.done { background: #6B6340 } .live .prog i.on { background: var(--gold) }
+.live .news { display: grid; gap: 6px; font-size: 0.95rem }
+.live .news div { background: var(--desk); border-radius: 8px; padding: 8px 10px } .live .news b { color: var(--muted); font-size: 0.75rem; display: block }
+.live-wait { color: var(--muted); font-size: 0.92rem; border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px }
+.flash { color: var(--gold); font-weight: 700; font-size: 0.92rem }
+.strip { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; display: flex; gap: 10px; align-items: center; justify-content: space-between; background: rgba(19,20,27,.96); backdrop-filter: blur(6px); border: 1px solid var(--gold); border-radius: 12px; padding: 8px 12px; font-weight: 700 }
+.strip.night { border-color: #2B2E4A; background: rgba(7,8,15,.97) }
+.strip .cd { font-family: var(--f-mono); font-variant-numeric: tabular-nums } .strip .phone { font-size: .78rem }
+.sync { display: inline-flex; gap: 6px; align-items: center; font-size: 0.82rem; color: var(--muted) }
+.sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
+.sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>SSI 마피아 토론</h1><span>우리 팀 안에 배신자가 있다</span></div>
+    <nav aria-label="화면 선택"><a href="#home" id="navH">처음</a><a href="#guide" id="navG">게임 방법</a><a href="#student" id="navS">학생 카드</a><a href="#teacher" id="navT">선생님</a></nav>
+  </header>
+
+  <!-- HOME -->
+  <main id="viewHome" class="guide">
+    <section class="hero">
+      <h2>근거로 토론하고, 우리 팀 안의 배신자를 찾아라</h2>
+      <p>반 전체가 하나의 마을이 됩니다. 날마다 과학 관련 사회적 쟁점(SSI)을 두고 찬성과 반대로 토론하는데, 그 속에 거짓 근거를 퍼뜨리는 배신자(마피아)가 숨어 있습니다.</p>
+    </section>
+    <div class="doors" id="doors"></div>
+    <section>
+      <p class="label">규칙은 딱 세 가지</p>
+      <div class="rules3">
+        <div><b style="color:var(--pro)">1</b><span>받은 입장으로 토론한다<small>찬성·반대는 휴대폰 카드가 정해 준다</small></span></div>
+        <div><b style="color:var(--stamp)">2</b><span>우리 팀 안에 배신자가 있을 수 있다<small>마피아는 같은 편인 척하며 우리 진영을 지게 만든다</small></span></div>
+        <div><b style="color:var(--ok)">3</b><span>출처를 따져 묻는다<small>"출처가 어디야? 언제 자료야? 숫자 정확해?"</small></span></div>
+      </div>
+    </section>
+    <details class="why" id="why">
+      <summary>이 게임은 왜 할까? 과학 관련 사회적 쟁점(SSI)과의 연결</summary>
+      <p class="muted" style="margin:0 0 12px">원자력, 유전자 편집, 인공지능 같은 쟁점은 과학 지식만으로 답이 정해지지 않아 사회가 함께 토론하고 결정해야 한다. 그런데 토론 안에 틀리거나 왜곡된 근거가 섞이면 잘못된 결정을 내리게 된다. 우리 반이 하나의 사회(마을)가 되어 근거로 토론하고, 그 안에 숨은 허위 정보를 가려내는 연습을 한다.</p>
+      <div class="map">
+        <div><b>찬반 토론</b><span>SSI에는 정답이 하나가 아니다. 근거로 서로 다른 입장을 주장한다.</span></div>
+        <div><b>매일 바뀌는 입장</b><span>내 생각과 다른 입장의 근거도 이해해 본다.</span></div>
+        <div><b>배신자의 거짓 근거</b><span>실제 허위·왜곡 정보는 대부분 맞고 한 부분만 틀린 경우가 많다.</span></div>
+        <div><b>검색과 심판</b><span>팩트체크와 검증. 그 페이지에 정말 그렇게 쓰여 있는지 읽는다.</span></div>
+        <div><b>익명 제보</b><span>출처 없는 정보가 SNS처럼 퍼질 때 함께 확인하는 연습.</span></div>
+        <div><b>광장 토론과 재판</b><span>사회 전체가 근거를 따져 결정하는 사회적 합의 과정.</span></div>
+        <div><b>시즌 종료 해설</b><span>정확한 정보를 전할 책임, 과학 윤리의 정직성.</span></div>
+      </div>
+    </details>
+  </main>
+
+  <!-- GUIDE -->
+  <main id="viewGuide" class="guide" hidden>
+    <section class="stagebox">
+      <div id="sceneSvg"></div>
+      <div class="caption"><span class="k" id="sceneK"></span><h3 id="sceneT"></h3><p id="sceneP"></p></div>
+      <div class="gnav">
+        <div class="dots" id="sceneDots"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="scPrev">◀ 이전</button>
+          <button id="scPlay">자동 재생</button>
+          <button class="primary" id="scNext">다음 ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel quiz">
+      <p class="label">미니 체험 · 거짓 근거를 찾아라</p>
+      <h2 style="margin:0;font-size:1.2rem" id="qClaim"></h2>
+      <p class="muted" style="margin:0">아래 세 근거 중 하나는 배신자의 '거의 사실'입니다. 대부분 맞고 한 부분만 틀렸습니다. 수상한 카드를 눌러 보세요.</p>
+      <div class="qcards" id="qCards"></div>
+      <div class="qwhy" id="qWhy" aria-live="polite">카드를 하나 고르세요.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="gold" id="qNext">다른 문제</button><span class="muted" id="qScore"></span></div>
+    </section>
+
+    <section class="panel">
+      <p class="label">역할 카드 미리보기 (예시)</p>
+      <div class="samples" id="samples"></div>
+    </section>
+  </main>
+
+  <!-- STUDENT -->
+  <main id="viewStudent" class="guide" hidden>
+    <div class="strip" id="liveStrip" hidden></div>
+    <section id="liveBox" aria-live="polite"><div class="live-wait">선생님이 진행을 시작하면 여기에 지금 단계와 남은 시간이 표시됩니다. 우리 반 시즌 코드를 먼저 입력하세요.</div></section>
+    <div class="student">
+    <section class="panel">
+      <div class="stepper"><span class="on">1 코드 입력</span><span>2 밤에 카드 열기</span><span>3 카드 가리기</span></div>
+      <form id="joinForm" autocomplete="off" novalidate>
+        <div style="display:grid; gap:12px">
+          <label class="f" for="code">우리 반 시즌 코드 (칠판에 적힌 코드)<input id="code" inputmode="text" placeholder="예: 24-K7QD" maxlength="8"></label>
+          <div class="row">
+            <label class="f" for="day">오늘은<select id="day"></select></label>
+            <label class="f" for="seat">내 출석번호<select id="seat"></select></label>
+          </div>
+          <button class="primary bigbtn" type="submit">내 카드 받기</button>
+        </div>
+        <p class="err" id="joinErr" role="alert"></p>
+      </form>
+      <p class="muted" style="font-size:.9rem;margin:4px 0 0">처음이라면 <a href="#guide" style="color:var(--gold)">게임 방법</a>을 먼저 보세요. 1분이면 됩니다.</p>
+    </section>
+    <section aria-live="polite">
+      <div id="cardSlot" class="empty"><div><strong style="font-family:var(--f-display);font-size:1.6rem;font-weight:400;color:var(--paper)">카드가 여기에 나타납니다</strong><br>왼쪽에 코드와 출석번호를 입력하세요.</div></div>
+    </section>
+    </div>
+  </main>
+
+  <!-- TEACHER -->
+  <main id="viewTeacher" class="teacher" hidden>
+    <div class="tbar" id="tbar">
+      <div class="who">
+        <div class="classtabs" id="classTabs" role="tablist" aria-label="반 선택"></div>
+        <span class="code" id="barCode"></span>
+        <span class="daybadge" id="barDay"></span>
+      </div>
+      <div class="narr"><b id="barPhase">밤</b><span id="barNarr"></span></div>
+      <div class="clockbox">
+        <span class="clock" id="clock">1:00</span>
+        <button class="sm" id="tPrev" aria-label="이전 단계">◀</button>
+        <button class="sm primary" id="tStart">시작</button>
+        <button class="sm" id="tNext" aria-label="다음 단계">▶</button>
+        <button class="sm" id="sound" aria-pressed="false">효과음</button>
+        <span class="sync"><span class="dot" id="syncDot"></span><button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button><span id="syncMsg"></span></span>
+      </div>
+    </div>
+    <div class="steps-nav" id="stepsNav" role="tablist" aria-label="진행 단계"></div>
+    <section class="panel tpanel" id="tpanel"></section>
+  </main>
+</div>
+
+<div class="stage" id="stage" hidden><div class="inner" id="stageInner"></div></div>
+
+<script type="application/json" id="liveData">%%LIVE%%</script>
+
