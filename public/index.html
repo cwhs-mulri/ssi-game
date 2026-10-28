@@ -295,6 +295,7 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
+.stage .item, .stage h2 { word-break: keep-all }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
 .splash.show { opacity: 1 } .splash.hide { opacity: 0 }
 .splash .sp-in { display: grid; gap: 10px; justify-items: center; max-width: 520px }
@@ -2130,7 +2131,7 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight();
+      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -2287,6 +2288,22 @@ function showSplash(e) {
 }
 function hideSplash() { const el = $("splash"); if (el.hidden) return; el.classList.remove("show"); el.classList.add("hide"); setTimeout(() => { el.hidden = true; el.classList.remove("hide"); }, 450); }
 $("splash").onclick = hideSplash;
+
+// ---------------- teacher fullscreen news -> student phones ----------------
+var stageLive = null;
+function stageClosed() { if (stageLive) { stageLive = null; schedulePublish(); } }
+let stuStageAt = null, stuStageDismissed = null;
+function renderStuStage(v) {
+  if ($("viewStudent").hidden) return;
+  const st = v && v.stage;
+  if (st && st.k === "news") {
+    if (stuStageDismissed === st.at || stuStageAt === st.at) return;
+    stuStageAt = st.at; hideSplash();
+    $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stage").hidden = false;
+    $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
+  } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
+}
 
 // ---------------- student ----------------
 fillSelect($("day"), 1, 6, 1, v => `DAY ${v}${v === 1 ? " (연습)" : ""}`);
@@ -2584,7 +2601,7 @@ function newsItems() {
   if (isPlazaDay(d, S.days)) items.push(["특별 일정", "오늘은 광장 대표토론이 열립니다. 구역 MVP가 광장에 섭니다."]);
   return items;
 }
-function showNews() { showStage(`<div class="kicker">DAY ${S.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${newsItems().map(([k, v]) => `<div class="item"><small>${esc(k)}</small>${esc(v)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); }
+function showNews() { stageLive = { k: "news", items: newsItems(), at: NET.now() }; schedulePublish(); showStage(`<div class="kicker">DAY ${S.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${newsItems().map(([k, v]) => `<div class="item"><small>${esc(k)}</small>${esc(v)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); }
 function showTip() {
   if (!S.tip) { snap(); S.tip = { day: S.day, dist: null }; save(); }
   const c = C(), T = TOPICS[dayTopic(c, S.day)], r = rng(hash(`tip|${c.key}|${S.day}`)), [, text, why] = T.lies[Math.floor(r() * T.lies.length)];
@@ -2593,15 +2610,15 @@ function showTip() {
   renderStep();
 }
 function showFrame() { showStage(`<div class="kicker">말하기 도우미</div><h2>입론 발언 틀 (30초)</h2><div class="tipbody" style="background:rgba(99,169,230,.12);border-color:var(--pro)">"나는 오늘 쟁점에 [찬성 / 반대] 한다. 왜냐하면 ________ 이기 때문이다. 근거는 ________ (출처: ________) 이다."</div><div class="items"><div class="item"><small>질문 카드 · 출처</small>"그 내용 출처가 어디야?"</div><div class="item"><small>질문 카드 · 시기</small>"언제 나온 자료야?"</div><div class="item"><small>질문 카드 · 숫자와 대상</small>"그 숫자 정확해? 대상이 맞아?"</div></div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); }
-function showStage(html) { $("stageInner").innerHTML = html; $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; }; chime(2); }
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("stage").hidden = true; });
+function showStage(html) { $("stageInner").innerHTML = html; $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; stageClosed(); }; chime(2); }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("stage").hidden) { $("stage").hidden = true; stageClosed(); } });
 
 
 // ---------------- teacher: sync toggle and timer persistence ----------------
 let pubTimer = null, booted = false;
 function liveEntry() {
   const p = phases[pi];
-  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, out: caughtBefore(S.day), updated: NET.now() };
+  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, stage: stageLive, out: caughtBefore(S.day), updated: NET.now() };
 }
 function schedulePublish() { if (!booted) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }
 $("syncBtn").onclick = async () => { try { if (NET.isTeacher()) await NET.logout(); else await NET.teacherLogin(); } catch (e) { setSync("err", "로그인 실패 " + ((e && e.code) || "")); } };
@@ -2642,7 +2659,7 @@ function buildPhases() {
 function fmt(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
 function setPhase(sound = true) {
   clearInterval(tick); running = false; $("tStart").textContent = "시작";
-  remain = phases[pi][1];
+  remain = phases[pi][1]; if (typeof stageLive !== "undefined" && stageLive) { stageLive = null; }
   $("barPhase").textContent = `${phases[pi][0]} · ${pi + 1}/${phases.length}`; $("barNarr").textContent = phases[pi][2];
   $("tbar").classList.toggle("night", phases[pi][0] === "밤");
   drawClock(); if (sound) chime(1);

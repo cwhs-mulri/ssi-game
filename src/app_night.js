@@ -13,7 +13,7 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight();
+      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -170,3 +170,19 @@ function showSplash(e) {
 }
 function hideSplash() { const el = $("splash"); if (el.hidden) return; el.classList.remove("show"); el.classList.add("hide"); setTimeout(() => { el.hidden = true; el.classList.remove("hide"); }, 450); }
 $("splash").onclick = hideSplash;
+
+// ---------------- teacher fullscreen news -> student phones ----------------
+var stageLive = null;
+function stageClosed() { if (stageLive) { stageLive = null; schedulePublish(); } }
+let stuStageAt = null, stuStageDismissed = null;
+function renderStuStage(v) {
+  if ($("viewStudent").hidden) return;
+  const st = v && v.stage;
+  if (st && st.k === "news") {
+    if (stuStageDismissed === st.at || stuStageAt === st.at) return;
+    stuStageAt = st.at; hideSplash();
+    $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stage").hidden = false;
+    $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
+  } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
+}

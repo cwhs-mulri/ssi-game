@@ -22,6 +22,7 @@ html = R(html, '</section>\n    <div class="student">', '</section>\n    <sectio
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.stage .item, .stage h2 { word-break: keep-all }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
 .splash.show { opacity: 1 } .splash.hide { opacity: 0 }
 .splash .sp-in { display: grid; gap: 10px; justify-items: center; max-width: 520px }
@@ -109,6 +110,12 @@ js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNe
 js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; teacherWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
+# teacher fullscreen news mirrored to students
+js = R(js, 'function showNews() { showStage(', 'function showNews() { stageLive = { k: "news", items: newsItems(), at: NET.now() }; schedulePublish(); showStage(')
+js = R(js, '$("stageClose").onclick = () => { $("stage").hidden = true; }; chime(2); }', '$("stageClose").onclick = () => { $("stage").hidden = true; stageClosed(); }; chime(2); }')
+js = R(js, 'if (e.key === "Escape") $("stage").hidden = true;', 'if (e.key === "Escape" && !$("stage").hidden) { $("stage").hidden = true; stageClosed(); }')
+js = R(js, 'news: p[4] === "news" ? newsItems() : null, out:', 'news: p[4] === "news" ? newsItems() : null, stage: stageLive, out:')
+js = R(js, '  remain = phases[pi][1];\n', '  remain = phases[pi][1]; if (typeof stageLive !== "undefined" && stageLive) { stageLive = null; }\n')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)
