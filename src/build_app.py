@@ -19,9 +19,18 @@ def R(s, a, b, cnt=1):
 # ---- HTML ----
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
+html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>')
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.tipbtn { width: 100%; min-height: 64px; border-radius: 16px; border: 2px solid #E0533F; background: linear-gradient(180deg, #5A1E19, #3A1411); color: #FFE3DE; font-size: 1.2rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 0 0 4px #E0533F22, 0 8px 24px #E0533F33; animation: tippulse 2.4s ease-in-out infinite }
+.tipbtn.arm { background: #E0533F; color: #fff; animation: none }
+.tipbtn[disabled] { opacity: .55; animation: none }
+@keyframes tippulse { 50% { box-shadow: 0 0 0 8px #E0533F11, 0 8px 28px #E0533F55 } }
+@media (prefers-reduced-motion: reduce) { .tipbtn { animation: none } }
+.tipwrap { display: grid; gap: 6px; border: 1px solid #5A2520; background: #1A0E10; border-radius: 16px; padding: 12px 14px }
+.tipwrap p { margin: 0; font-size: .86rem; color: #D9B5AE; word-break: keep-all }
+.stage .tipkick { color: #FF8A78 }
 .stage .item, .stage h2, .stage .tipbody { word-break: keep-all }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
 .splash.show { opacity: 1 } .splash.hide { opacity: 0 }
@@ -101,13 +110,13 @@ js = R(js, '''  const e = c && liveFor(c.code);
   const strip = $("liveStrip");''')
 js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
 js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
-          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight();\n}')
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
-js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; teacherWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; teacherWatch(); teacherTipWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
 # teacher fullscreen news mirrored to students
@@ -124,6 +133,11 @@ js = js.replace(_m.group(0), 'const FRAME_STAGE = () => ' + _m.group(1) + ';\nfu
 import datetime
 _ver = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%m%d-%H%M')
 js = R(js, '선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트', '선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v' + _ver)
+# anonymous tip: broadcast to phones, reveal mirrored, mafia-triggered
+js = R(js, '  showStage(`<div class="kicker">ANONYMOUS TIP', '  stageLive = { k: "tip", text, at: NET.now() }; schedulePublish();\n  showStage(`<div class="kicker">ANONYMOUS TIP')
+js = R(js, '$("tipReveal").onclick = () => { $("tipWhy").hidden = false; };', '$("tipReveal").onclick = () => { $("tipWhy").hidden = false; if (stageLive && stageLive.k === "tip") { stageLive = Object.assign({}, stageLive, { why }); schedulePublish(); } };')
+js = R(js, 'stage: stageLive, out:', 'stage: stageLive, tipUsed: !!S.tip, out:')
+js = R(js, '"마피아가 신호를 보내면 사용"', '"마피아가 휴대폰으로 제보하면 자동으로 뜹니다. 직접 띄워도 됩니다"')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

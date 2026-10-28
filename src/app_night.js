@@ -178,10 +178,13 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden) return;
   const st = v && v.stage;
-  if (st && (st.k === "news" || st.k === "frame")) {
-    if (stuStageDismissed === st.at || stuStageAt === st.at) return;
-    stuStageAt = st.at; hideSplash();
-    $("stageInner").innerHTML = st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip")) {
+    const sk = st.at + (st.why ? "|w" : "");
+    if (stuStageDismissed === st.at || stuStageAt === sk) return;
+    const fresh = stuStageAt === null || String(stuStageAt).split("|")[0] !== String(st.at);
+    stuStageAt = sk; hideSplash();
+    if (st.k === "tip" && fresh) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch {} }
+    $("stageInner").innerHTML = st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -189,3 +192,41 @@ function renderStuStage(v) {
 
 // iOS suspends pages in the background: re-check the live state when the page comes back
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && liveCode && NETLIVE[liveCode]) { renderLive(); renderNight(); renderStuStage(NETLIVE[liveCode]); } });
+
+// ---------------- mafia phone: surprise anonymous tip button ----------------
+let tipArm = 0, tipMsg = "";
+function renderTipBox() {
+  const box = $("tipBox"), c = parseCode($("code").value), last = store.get("ssi-last4");
+  const e = c && last && last.code === c.code ? liveFor(c.code) : null;
+  const seat = +$("seat").value, R = c && roles(c);
+  const ok = e && R && R.mafia.includes(seat) && !(e.out || []).includes(seat) && e.day >= 2 && e.phase !== "밤" && e.phase !== "아침 뉴스" && e.phase !== "정리";
+  if (!ok) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const sent = ss.get(`ssi-tip-${c.code}`);
+  const used = e.tipUsed;
+  box.innerHTML = `<div class="tipwrap"><button type="button" class="tipbtn ${tipArm ? "arm" : ""}" id="tipBtn" ${used || sent ? "disabled" : ""}>${used ? "익명 제보 사용 완료 (시즌 1회)" : sent ? "제보 접수됨 · 곧 화면에 뜹니다" : tipArm ? "한 번 더 누르면 바로 제보!" : "기습 익명 제보하기"}</button>
+    <p>${esc(tipMsg || (used ? "이번 시즌의 익명 제보는 이미 쓰였습니다." : "마피아 전용 · 시즌 1회. 누르면 그럴듯한 거짓 제보가 모든 휴대폰과 칠판 화면에 뜹니다. 들키지 않게 몰래 누르세요."))}</p></div>`;
+  $("tipBtn").onclick = async () => {
+    if (used || sent) return;
+    if (!tipArm) { tipArm = 1; renderTipBox(); setTimeout(() => { if (tipArm) { tipArm = 0; renderTipBox(); } }, 4000); return; }
+    tipArm = 0; tipMsg = "보내는 중…"; renderTipBox();
+    try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/tip/s${seat}`, { uid: NET.user.uid, k: "m", target: seat, t: NET.stamp() }); ss.set(`ssi-tip-${c.code}`, 1); tipMsg = ""; }
+    catch (err) { tipMsg = "전송 실패. 다시 눌러 주세요."; }
+    renderTipBox();
+  };
+}
+// teacher: watch tip requests and pop the tip automatically
+let tipSub = null, tipKey = null;
+function teacherTipWatch() {
+  const key = NET.isTeacher() && S ? S.code : null;
+  if (key === tipKey) return;
+  tipKey = key; if (tipSub) { tipSub(); tipSub = null; }
+  if (!key) return;
+  tipSub = NET.watch(`${roomPath(key)}/votes/tip`, v => {
+    if (!v || S.code !== key || S.tip || S.day < 2 || S.ended) return;
+    const R = roles(C()), out = caughtBefore(S.day);
+    const req = Object.entries(v).map(([k, x]) => ({ seat: +k.slice(1), ...x })).find(x => R.mafia.includes(x.seat) && !out.includes(x.seat));
+    if (!req) return;
+    showTip(); chime(3);
+  });
+}
