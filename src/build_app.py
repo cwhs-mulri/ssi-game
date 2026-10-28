@@ -24,6 +24,7 @@ html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.stage .dodowarn { animation: dodobob 1.2s ease-in-out infinite } @keyframes dodobob { 50% { transform: translateY(-6px) rotate(-4deg) } } @media (prefers-reduced-motion: reduce) { .stage .dodowarn { animation: none } }
 .stabs { position: relative; display: none; gap: 4px; background: #151722; border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin: 2px 0 10px }
 .stabs button { position: relative; z-index: 1; flex: 1; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: .92rem; min-height: 40px; border-radius: 999px }
 .stabs button.on { color: #13141B } .stabs .dot { display: none; position: absolute; top: 7px; right: 14%; width: 8px; height: 8px; border-radius: 50%; background: #E0533F }
@@ -184,6 +185,9 @@ js = R(js, '<div class="rowx"><button class="sm gold" data-j="${di}">저장</but
 # swipe layout: after joining go to the card slide; initial slide on boot
 js = R(js, 'if (window.matchMedia("(max-width: 760px)").matches) $("cardSlot").scrollIntoView({ behavior: "smooth" });', 'goSlide("card");')
 js = R(js, '\nrenderLive();\nbooted = true;', '\nrenderLive();\ngoSlide(store.get("ssi-last4") ? "now" : "join", false); requestAnimationFrame(() => { markTabs(); fitSlide(); });\nbooted = true;')
+# 도도새 주의보 in morning news + phone alert
+js = R(js, '    items.push(["남은 마피아",', '    if (S.dodo && S.dodo.seat && S.dodo.day === d) items.push(["도도새 주의보", "어젯밤 마을에 도도새가 나타났습니다! 도도새는 광장 재판에서 재판대에 오르면 혼자 승리합니다. 수상해 보인다고 무작정 재판에 올리면 도도새의 함정에 빠집니다."]);\n    items.push(["남은 마피아",')
+js = R(js, 'dodo: dodoPending(), out:', 'dodo: dodoPending(), alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out:')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

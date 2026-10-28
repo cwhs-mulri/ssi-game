@@ -13,7 +13,7 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v);
+      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -428,3 +428,21 @@ try { const ro = new ResizeObserver(() => fitSlide()); swipe.slides.forEach(s =>
 window.addEventListener("resize", () => { markTabs(); fitSlide(); if (narrow()) swipe.wrap.scrollTo({ left: slideCur * swipe.wrap.clientWidth }); });
 // new actions appear -> badge the 지금 tab
 try { const mo = new MutationObserver(() => { if (["nightBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
+
+// ---------------- phone alert: 도도새 주의보 (morning after a 도도새 appears) ----------------
+let alertTimer = null;
+function checkAlert(code, v) {
+  const a = v && v.alert; if (!a || a.k !== "dodo" || $("viewStudent").hidden) return;
+  const k = `ssi-alert-${code}-${a.day}`; if (store.get(k)) return;
+  store.set(k, 1);
+  clearTimeout(alertTimer);
+  alertTimer = setTimeout(() => {
+    hideSplash();
+    $("stageInner").innerHTML = `<div class="kicker dodokick">SPECIAL ALERT · DAY ${a.day}</div><div class="dodoart dodowarn">${DODO_SVG}</div><h2>도도새 주의보!</h2>
+      <div class="tipbody dodobody">어젯밤 마을에 <b>도도새</b>가 나타났습니다.<br><br>도도새는 마피아도 시민도 아닙니다. <b>광장 재판에서 재판대에 오르면 혼자 승리</b>합니다.<br>너무 수상하게 구는 사람이 있다면… 도도새일지도 모릅니다. 재판에 올리기 전에 한 번 더 생각하세요.</div>
+      <button class="primary" id="stageClose" style="justify-self:end">확인</button>`;
+    $("stage").hidden = false;
+    try { if (navigator.vibrate) navigator.vibrate([120, 80, 120, 80, 240]); } catch {}
+    $("stageClose").onclick = () => { $("stage").hidden = true; };
+  }, !$("splash").hidden ? 3700 : 300);
+}
