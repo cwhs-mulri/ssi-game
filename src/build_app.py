@@ -22,7 +22,7 @@ html = R(html, '</section>\n    <div class="student">', '</section>\n    <sectio
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
-.stage .item, .stage h2 { word-break: keep-all }
+.stage .item, .stage h2, .stage .tipbody { word-break: keep-all }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
 .splash.show { opacity: 1 } .splash.hide { opacity: 0 }
 .splash .sp-in { display: grid; gap: 10px; justify-items: center; max-width: 520px }
@@ -116,6 +116,10 @@ js = R(js, '$("stageClose").onclick = () => { $("stage").hidden = true; }; chime
 js = R(js, 'if (e.key === "Escape") $("stage").hidden = true;', 'if (e.key === "Escape" && !$("stage").hidden) { $("stage").hidden = true; stageClosed(); }')
 js = R(js, 'news: p[4] === "news" ? newsItems() : null, out:', 'news: p[4] === "news" ? newsItems() : null, stage: stageLive, out:')
 js = R(js, '  remain = phases[pi][1];\n', '  remain = phases[pi][1]; if (typeof stageLive !== "undefined" && stageLive) { stageLive = null; }\n')
+# speaking-frame fullscreen mirrored to students
+_m = re.search(r'function showFrame\(\) \{ showStage\((`.*?`)\); \}', js)
+assert _m
+js = js.replace(_m.group(0), 'const FRAME_STAGE = () => ' + _m.group(1) + ';\nfunction showFrame() { stageLive = { k: "frame", at: NET.now() }; schedulePublish(); showStage(FRAME_STAGE()); }')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

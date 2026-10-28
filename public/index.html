@@ -295,7 +295,7 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
-.stage .item, .stage h2 { word-break: keep-all }
+.stage .item, .stage h2, .stage .tipbody { word-break: keep-all }
 .splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center; color: #EEE8DC; background: radial-gradient(120% 90% at 50% 30%, #23263A 0%, #0E0F17 70%); opacity: 0; transition: opacity .45s ease; cursor: pointer }
 .splash.show { opacity: 1 } .splash.hide { opacity: 0 }
 .splash .sp-in { display: grid; gap: 10px; justify-items: center; max-width: 520px }
@@ -2296,10 +2296,10 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden) return;
   const st = v && v.stage;
-  if (st && st.k === "news") {
+  if (st && (st.k === "news" || st.k === "frame")) {
     if (stuStageDismissed === st.at || stuStageAt === st.at) return;
     stuStageAt = st.at; hideSplash();
-    $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -2609,7 +2609,8 @@ function showTip() {
   $("tipReveal").onclick = () => { $("tipWhy").hidden = false; };
   renderStep();
 }
-function showFrame() { showStage(`<div class="kicker">말하기 도우미</div><h2>입론 발언 틀 (30초)</h2><div class="tipbody" style="background:rgba(99,169,230,.12);border-color:var(--pro)">"나는 오늘 쟁점에 [찬성 / 반대] 한다. 왜냐하면 ________ 이기 때문이다. 근거는 ________ (출처: ________) 이다."</div><div class="items"><div class="item"><small>질문 카드 · 출처</small>"그 내용 출처가 어디야?"</div><div class="item"><small>질문 카드 · 시기</small>"언제 나온 자료야?"</div><div class="item"><small>질문 카드 · 숫자와 대상</small>"그 숫자 정확해? 대상이 맞아?"</div></div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); }
+const FRAME_STAGE = () => `<div class="kicker">말하기 도우미</div><h2>입론 발언 틀 (30초)</h2><div class="tipbody" style="background:rgba(99,169,230,.12);border-color:var(--pro)">"나는 오늘 쟁점에 [찬성 / 반대] 한다. 왜냐하면 ________ 이기 때문이다. 근거는 ________ (출처: ________) 이다."</div><div class="items"><div class="item"><small>질문 카드 · 출처</small>"그 내용 출처가 어디야?"</div><div class="item"><small>질문 카드 · 시기</small>"언제 나온 자료야?"</div><div class="item"><small>질문 카드 · 숫자와 대상</small>"그 숫자 정확해? 대상이 맞아?"</div></div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+function showFrame() { stageLive = { k: "frame", at: NET.now() }; schedulePublish(); showStage(FRAME_STAGE()); }
 function showStage(html) { $("stageInner").innerHTML = html; $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; stageClosed(); }; chime(2); }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("stage").hidden) { $("stage").hidden = true; stageClosed(); } });
 

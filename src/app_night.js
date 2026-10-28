@@ -178,10 +178,10 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden) return;
   const st = v && v.stage;
-  if (st && st.k === "news") {
+  if (st && (st.k === "news" || st.k === "frame")) {
     if (stuStageDismissed === st.at || stuStageAt === st.at) return;
     stuStageAt = st.at; hideSplash();
-    $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
