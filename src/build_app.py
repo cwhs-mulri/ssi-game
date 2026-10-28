@@ -120,6 +120,10 @@ js = R(js, '  remain = phases[pi][1];\n', '  remain = phases[pi][1]; if (typeof 
 _m = re.search(r'function showFrame\(\) \{ showStage\((`.*?`)\); \}', js)
 assert _m
 js = js.replace(_m.group(0), 'const FRAME_STAGE = () => ' + _m.group(1) + ';\nfunction showFrame() { stageLive = { k: "frame", at: NET.now() }; schedulePublish(); showStage(FRAME_STAGE()); }')
+# version stamp on the student live box (for checking that phones loaded the latest build)
+import datetime
+_ver = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%m%d-%H%M')
+js = R(js, '선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트', '선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v' + _ver)
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

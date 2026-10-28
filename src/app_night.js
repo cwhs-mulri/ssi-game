@@ -186,3 +186,6 @@ function renderStuStage(v) {
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
 }
+
+// iOS suspends pages in the background: re-check the live state when the page comes back
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && liveCode && NETLIVE[liveCode]) { renderLive(); renderNight(); renderStuStage(NETLIVE[liveCode]); } });
