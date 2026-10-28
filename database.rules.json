@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        "live": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email_verified == true && auth.token.email.toLowerCase() == 'kjm140@gw1.kr'"
+        },
+        "board": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email_verified == true && auth.token.email.toLowerCase() == 'kjm140@gw1.kr'"
+        },
+        "votes": {
+          ".read": "auth != null && auth.token.email_verified == true && auth.token.email.toLowerCase() == 'kjm140@gw1.kr'",
+          ".write": "auth != null && auth.token.email_verified == true && auth.token.email.toLowerCase() == 'kjm140@gw1.kr'",
+          "$day": {
+            "$seat": {
+              ".write": "auth != null && newData.child('uid').val() == auth.uid && (!data.exists() || data.child('uid').val() == auth.uid)",
+              ".validate": "newData.hasChildren(['uid', 'k', 'target', 't']) && (newData.child('k').val() == 'm' || newData.child('k').val() == 'j') && newData.child('target').isNumber() && newData.child('target').val() >= 1 && newData.child('target').val() <= 30 && newData.child('t').val() <= now + 60000"
+            }
+          }
+        }
+      }
+    }
+  }
+}

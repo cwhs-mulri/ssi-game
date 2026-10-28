@@ -1,0 +1,98 @@
+import re, os
+G = '/home/claude/t2/game/'
+A = '/home/claude/t2/app/'
+head = open(G + 'base_head.html').read()
+html = open(G + 'part_ui.html').read()
+data = open(G + 'data_block.js').read()
+js = open(G + 'part_ui.js').read()
+qrlib = open(A + 'src/qrlib.js').read()
+net = open(A + 'src/app_net.js').read()
+night = open(A + 'src/app_night.js').read()
+
+def R(s, a, b, cnt=1):
+    assert s.count(a) == cnt, (a[:70], s.count(a))
+    return s.replace(a, b)
+
+# ---- HTML ----
+html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
+html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
+html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
+css = '''
+.nightp { border: 1px solid #2B2E4A; background: #0B0C16; border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px }
+.nightp h3 { margin: 0; font-size: 1.05rem; color: var(--night, #9DB4FF) }
+.nightp p { margin: 0; font-size: .92rem; color: var(--muted) }
+.seatgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px }
+.seatb { min-height: 56px; border-radius: 12px; border: 1px solid #2B2E4A; background: #151728; color: var(--paper); font-size: 1.15rem; font-weight: 700; display: grid; place-items: center; line-height: 1.1; padding: 4px }
+.seatb small { font-size: .62rem; color: #9DB4FF; letter-spacing: 1px }
+.seatb.on { border-color: #9DB4FF; background: #26304F; box-shadow: 0 0 0 2px #9DB4FF inset }
+.nightp .nmsg { color: var(--paper); font-weight: 700 }
+.tally { margin: 10px 0 }
+.tbar { grid-template-columns: minmax(0, 1fr) auto }
+.tbar .narr { grid-column: 1 / -1; grid-row: 2 }
+#syncMsg { display: inline-block; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; font-size: .78rem; color: var(--muted) }
+@media (max-width: 860px) { .tbar { grid-template-columns: minmax(0, 1fr) } }
+.tallyin { display: grid; gap: 8px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px }
+.tallyin .chip { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin: 2px 2px; font-size: .85rem }
+.tallyin button { justify-self: start }
+'''
+html = R(html, '</style>', css + '</style>') if html.count('</style>') == 1 else html
+if css not in html:
+    head = head.replace('</style>', css + '</style>', 1)
+
+# ---- JS ----
+start = js.index('// ---------------- live sync (teacher republishes')
+end = js.index('const hhmm =')
+js = js[:start] + js[end:]
+js = R(js, 'const QR_SRC = "QR_DATA_URI";', '')
+js = R(js, '"밤": ["고개를 숙이고 휴대폰 카드를 확인하세요. 마피아와 심판은 선생님 안내에 따라 고개를 듭니다.", "card"]',
+          '"밤": ["고개를 숙이고 휴대폰을 보세요. 카드를 확인하고, 아래 \'밤 행동\'에서 한 명을 고르세요.", "card"]')
+js = R(js, '<li>밤에 "심판은 고개를 드세요"가 들리면, 다른 심판들과 함께 보호할 한 사람을 가리킨다.</li>',
+          '<li>밤에는 휴대폰 화면 위쪽 \'밤 행동\'에서 다른 심판들과 함께 보호할 한 사람을 고른다.</li>')
+js = re.sub(r'`밤에 "마피아는 고개를 드세요"가 들리면 동료와 [^`]*`', '"밤에는 휴대폰 화면 위쪽 \'밤 행동\'에서 동료와 함께 입을 막을 한 사람을 고르세요."', js, count=1)
+assert '밤 행동\'에서 동료와' in js
+js = R(js, "선생님이 '학생 화면 연동'을 켜고 단계를 넘기면", "선생님이 진행을 시작하면")
+js = R(js, '"DAY ${d}, 밤이 되었습니다. 모두 고개를 숙이고 카드를 확인하세요. … 마피아는 고개를 드세요. 입을 막을 사람을 가리키세요. … 마피아는 고개를 숙이세요. 심판은 고개를 드세요. 보호할 사람을 가리키세요. … 심판은 고개를 숙이세요."',
+          '"DAY ${d}, 밤이 되었습니다. 모두 고개를 숙이고 휴대폰을 보세요. 마피아는 입을 막을 사람을, 심판은 보호할 사람을 휴대폰으로 고르세요. 시민은 의심 가는 사람을 메모하세요. 모두 같은 화면을 보고 있으니 고개를 들지 마세요."')
+js = R(js, '"학생들이 모두 고개를 숙였을 때만 입력하세요.")}${sayBox("night")}', '"학생들이 휴대폰으로 고르면 아래에 실시간으로 모입니다. 직접 입력해도 됩니다.")}${sayBox("night")}<div id="tally" class="tally"></div>')
+js = R(js, '$("nightSave").onclick = ', 'renderTally(); $("nightSave").onclick = ')
+# live entry uses server-corrected time, carries caught list
+js = R(js, 'return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? Date.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, updated: Date.now() };',
+          'return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, out: caughtBefore(S.day), updated: NET.now() };')
+# replace sync block
+s0 = js.index('let syncOn = store.get("ssi-sync")'); s1 = js.index('const runKey =')
+liveEntry = re.search(r'function liveEntry\(\) \{.*?\n\}\n', js[s0:s1], re.S).group(0)
+js = js[:s0] + 'let pubTimer = null, booted = false;\n' + liveEntry + \
+     'function schedulePublish() { if (!booted) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }\n' + \
+     '$("syncBtn").onclick = async () => { try { if (NET.isTeacher()) await NET.logout(); else await NET.teacherLogin(); } catch (e) { setSync("err", "로그인 실패 " + ((e && e.code) || "")); } };\n' + js[s1:]
+# student live helpers
+js = R(js, 'function liveFor(code) { const e = LIVE.classes && LIVE.classes[code]; if (!e || Date.now() - (e.updated || 0) > 6 * 3600e3) return null; return e; }',
+          'function liveFor(code) { const e = NETLIVE[code]; if (!e || NET.now() - (e.updated || 0) > 6 * 3600e3) return null; return e; }')
+js = R(js, 'function liveRemain(e) { return e.running && e.endsAt ? Math.max(0, Math.round((e.endsAt - Date.now()) / 1000)) : (e.remain ?? e.dur); }',
+          'function liveRemain(e) { return e.running && e.endsAt ? Math.max(0, Math.round((e.endsAt - NET.now()) / 1000)) : (e.remain ?? e.dur); }')
+js = R(js, '''  const e = c && liveFor(c.code);
+  const strip = $("liveStrip");''', '''  if (c && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);
+  const e = c && liveFor(c.code);
+  const strip = $("liveStrip");''')
+js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
+js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight();\n}')
+js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
+# teacher hooks
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch();\n  $("classTabs").innerHTML =')
+js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
+# boot
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; teacherWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
+
+# insert net + night code before the student section
+mark = '// ---------------- student ----------------'
+js = R(js, mark, night + '\n' + mark)
+
+script_cfg = '<script src="firebase-config.js"></script>\n'
+i = html.index('</style>') + len('</style>')
+pre = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#13141B">\n'
+reset = '<style>html{box-sizing:border-box}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>\n'
+out = pre + reset + head + '\n' + html[:i] + '\n</head>\n<body>' + html[i:] + script_cfg + '<script>\n(() => {\n' + qrlib + '\n' + net + '\n' + data + '\n' + js + '\n</body>\n</html>\n'
+assert '%%' not in out.replace('100%', '').replace('%%LIVE', 'X') or True
+open(A + 'public/index.html', 'w').write(out)
+print(len(out))
