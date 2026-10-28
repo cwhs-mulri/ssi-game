@@ -19,10 +19,22 @@ def R(s, a, b, cnt=1):
 # ---- HTML ----
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
-html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>')
+html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.judgep { border: 1px solid #2E6B55; background: #0F1D18; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px }
+.judgep h3 { margin: 0; color: var(--judge, #4CC08F); font-size: 1.05rem } .judgep p { margin: 0; font-size: .88rem; color: var(--muted); word-break: keep-all }
+.jsides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.jside { display: grid; gap: 6px; align-content: start } .jside h4 { margin: 0; font-size: .95rem; display: flex; justify-content: space-between } .jside.pro h4 { color: var(--pro) } .jside.con h4 { color: var(--con) }
+.jchk { display: flex; gap: 8px; align-items: center; text-align: left; min-height: 48px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: #151821; color: var(--paper); font-size: .9rem; line-height: 1.25; word-break: keep-all }
+.jchk .bx { flex: 0 0 24px; height: 24px; border-radius: 6px; border: 2px solid #5A6070; display: grid; place-items: center; font-weight: 900; color: #0F1D18 }
+.jchk.on { border-color: var(--judge, #4CC08F); background: #173328 } .jchk.on .bx { background: var(--judge, #4CC08F); border-color: var(--judge, #4CC08F) }
+.jlead { font-size: .95rem } .jrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .92rem } .jrow.col { flex-direction: column; align-items: stretch }
+.jstep { display: flex; align-items: center; gap: 12px } .jstep button { width: 44px; height: 44px; border-radius: 10px; font-size: 1.3rem } .jstep b { min-width: 1.5ch; text-align: center; font-size: 1.2rem }
+.jmvp, .jwin { display: flex; flex-wrap: wrap; gap: 6px } .jmvp button { min-width: 48px; min-height: 44px; border-radius: 10px; font-weight: 700 } .jwin button { flex: 1; min-height: 46px; border-radius: 10px; font-weight: 700 }
+.jmvp button.on, .jwin button.on { background: var(--gold); color: #13141B; border-color: var(--gold) }
+.judgep .nmsg { color: var(--paper); font-weight: 700 }
 .case .stamp.dodo { color: #1E8796; border-color: #1E8796 }
 .case .dodo-box { border: 1.5px solid #1E8796 !important; color: #0E3E46 !important; background: rgba(42,157,173,.14) !important; font-weight: 700 }
 .stage .dodokick { color: #7FD3E0 } .stage .dodoart { width: 120px; height: 110px } .stage .dodoart svg { width: 100%; height: 100% }
@@ -115,13 +127,13 @@ js = R(js, '''  const e = c && liveFor(c.code);
   const strip = $("liveStrip");''')
 js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
 js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
-          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo();\n}')
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
-js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
 # teacher fullscreen news mirrored to students
@@ -149,6 +161,10 @@ js = R(js, 'stage: stageLive, tipUsed: !!S.tip, out:', 'stage: stageLive, tipUse
 js = R(js, '`<span class="miss">${last[1]}번은 마피아가 아닙니다. 누명이었습니다.</span>`', '(S.dodo && S.dodo.seat === last[1] && last[0] >= S.dodo.day ? `<span class="hit">${last[1]}번은 마피아가 아닙니다. 사실 도도새였습니다! 재판대에 올라 도도새 승리!</span>` : `<span class="miss">${last[1]}번은 마피아가 아닙니다. 누명이었습니다.</span>`)')
 js = R(js, '${hit ? "마피아 체포" : "시민, 누명"}', '${hit ? "마피아 체포" : S.dodo && S.dodo.seat === s && dd >= S.dodo.day ? "도도새 승리" : "시민, 누명"}')
 js = R(js, '`${s}번은 시민이었습니다. 누명이었습니다.`', '(S.dodo && S.dodo.seat === s && S.dodo.day <= d - 1 ? `${s}번은 사실 도도새였습니다! 재판대에 오르는 데 성공해 도도새가 승리했습니다.` : `${s}번은 시민이었습니다. 누명이었습니다.`)')
+# judge phone reports
+js = R(js, '<div class="result">${pz.win ? `광장 대표토론:', '<div id="plazaRep" class="tally"></div>\n      <div class="result">${pz.win ? `광장 대표토론:')
+js = R(js, '["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"', 'renderPlazaRep();\n    ["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"')
+js = R(js, '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}</span></div>', '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}</span></div>')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

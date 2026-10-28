@@ -313,3 +313,80 @@ function dodoCard(c, seat, day, sealed) {
   h = h.replace(/<div class="evidence">/, `<div class="mission-box dodo-box">비밀 임무: 광장 재판에서 투표 1위로 재판대에 오르세요. 그러면 도도새 승리! 토론은 아래 근거로 평소처럼 하되, 살짝 수상하게.</div><div class="evidence">`);
   return h;
 }
+
+// ---------------- judge phone: debate checklist (district) and plaza checklist ----------------
+const DEBATE_PH = ["진영 회의", "입론", "검색", "반론·질문", "심판 판정"];
+const CHECKS = ["근거를 말했다", "출처를 댔다", "상대 질문에 답했다"];
+const jKey = (code, day, kind, seat) => `ssi-judge-${code}-${day}-${kind}-${seat}`;
+let judgeMsg = "";
+function renderJudge() {
+  const box = $("judgeBox"), c = parseCode($("code").value), last = store.get("ssi-last4");
+  const e = c && last && last.code === c.code ? liveFor(c.code) : null, seat = +$("seat").value;
+  const R = c && roles(c), di = R ? R.judges.indexOf(seat) : -1;
+  const kind = e && di >= 0 ? (DEBATE_PH.includes(e.phase) ? "d" : e.phase === "광장 대표토론" ? "p" : null) : null;
+  if (!kind) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const k = jKey(c.code, e.day, kind, seat), st = store.get(k) || { pro: [0, 0, 0], con: [0, 0, 0], lies: 0, mvp: null, win: "", sent: 0 };
+  const save2 = () => store.set(k, st);
+  const sum = a => a.reduce((x, y) => x + y, 0), P = sum(st.pro), Q = sum(st.con);
+  const lead = P > Q ? "찬성 우세" : Q > P ? "반대 우세" : "동점";
+  const side = (name, key, cls) => `<div class="jside ${cls}"><h4>${name} ${kind === "p" ? "대표" : "진영"} <span>${sum(st[key])}/3</span></h4>${CHECKS.map((t, i) => `<button type="button" class="jchk ${st[key][i] ? "on" : ""}" data-s="${key}" data-i="${i}"><span class="bx">${st[key][i] ? "✓" : ""}</span>${t}</button>`).join("")}</div>`;
+  let extra = "";
+  if (kind === "d") {
+    const debaters = R.D[di].filter(x => x !== seat);
+    extra = `<div class="jrow"><span>거짓 근거 적발</span><div class="jstep"><button type="button" data-l="-1">−</button><b>${st.lies}</b><button type="button" data-l="1">+</button></div></div>
+      <div class="jrow col"><span>오늘의 MVP</span><div class="jmvp">${debaters.map(x => `<button type="button" class="${st.mvp === x ? "on" : ""}" data-m="${x}">${x}</button>`).join("")}</div></div>`;
+  } else {
+    extra = `<div class="jrow col"><span>내 판정</span><div class="jwin">${[["pro", "찬성 승리"], ["con", "반대 승리"], ["draw", "무승부"]].map(([v, t]) => `<button type="button" class="${st.win === v ? "on" : ""}" data-w="${v}">${t}</button>`).join("")}</div></div>`;
+  }
+  box.innerHTML = `<div class="judgep"><h3>${kind === "d" ? `${di + 1}구역 심판 체크리스트` : "광장 대표토론 심판 체크리스트"}</h3>
+    <p>${kind === "d" ? "토론을 들으며 해당하는 항목을 누르세요. 거짓이 적발된 진영은 1개를 빼서 판정합니다." : "대표들의 토론을 듣고 체크한 뒤, 내 판정을 고르세요."}</p>
+    <div class="jsides">${side("찬성", "pro", "pro")}${side("반대", "con", "con")}</div>
+    <div class="jlead">현재 ${P} : ${Q} · <b>${lead}</b></div>${extra}
+    <button type="button" class="primary bigbtn" id="judgeSend">${st.sent ? "다시 보고하기 (수정됨)" : "선생님께 보고하기"}</button>
+    <p class="nmsg">${esc(judgeMsg || (st.sent ? `보고 완료 ${hhmm(st.sent)} · 바꾸면 다시 보고하세요` : "판정 시간에 보고 버튼을 누르세요."))}</p></div>`;
+  box.querySelectorAll(".jchk").forEach(b => b.onclick = () => { st[b.dataset.s][+b.dataset.i] ^= 1; save2(); judgeMsg = ""; renderJudge(); });
+  box.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { st.lies = Math.max(0, Math.min(3, st.lies + +b.dataset.l)); save2(); renderJudge(); });
+  box.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { st.mvp = st.mvp === +b.dataset.m ? null : +b.dataset.m; save2(); renderJudge(); });
+  box.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { st.win = b.dataset.w; save2(); renderJudge(); });
+  $("judgeSend").onclick = async () => {
+    if (kind === "p" && !st.win) { judgeMsg = "내 판정(찬성 승리/반대 승리/무승부)을 먼저 고르세요."; renderJudge(); return; }
+    judgeMsg = "보내는 중…"; renderJudge();
+    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0 } : { ppro: P, pcon: Q, win: st.win };
+    try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/${kind === "d" ? "j" : "p"}${e.day}/s${seat}`, Object.assign({ uid: NET.user.uid, k: "j", target: seat, t: NET.stamp() }, rep)); st.sent = Date.now(); save2(); judgeMsg = ""; }
+    catch (err) { judgeMsg = "전송 실패. 다시 눌러 주세요."; }
+    renderJudge();
+  };
+}
+// teacher: receive judge reports
+let jSub = null, pSub = null, jKey2 = null, PLAZA_REP = {};
+function teacherJudgeWatch() {
+  const key = NET.isTeacher() && S ? `${S.code}|${S.day}` : null;
+  if (key === jKey2) return;
+  jKey2 = key; if (jSub) { jSub(); jSub = null; } if (pSub) { pSub(); pSub = null; } PLAZA_REP = {};
+  if (!key) return;
+  const d = S.day, code = S.code;
+  jSub = NET.watch(`${roomPath(code)}/votes/j${d}`, v => {
+    if (!v || S.code !== code || S.day !== d) return;
+    const R = roles(C()); let changed = false;
+    R.judges.forEach((js, di) => {
+      const r = v["s" + js]; if (!r) return;
+      const cur = (S.judge[d] || {})[di];
+      if (cur && cur.pt && cur.pt >= (+r.t || 0)) return;
+      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, pt: +r.t || Date.now(), phone: true };
+      changed = true;
+    });
+    if (changed) { save(); chime(1); if (step === "debate") renderStep(); renderBar(); }
+  });
+  pSub = NET.watch(`${roomPath(code)}/votes/p${d}`, v => { PLAZA_REP = v || {}; if (step === "plaza") renderPlazaRep(); });
+}
+function renderPlazaRep() {
+  const el = $("plazaRep"); if (!el) return;
+  const R = roles(C()), reps = R.judges.map(js => PLAZA_REP["s" + js]).filter(Boolean);
+  if (!reps.length) { el.innerHTML = `<span class="muted">심판들이 휴대폰으로 보고하면 여기에 모입니다.</span>`; return; }
+  const cnt = { pro: 0, con: 0, draw: 0 }; let P = 0, Q = 0;
+  reps.forEach(r => { cnt[r.win] = (cnt[r.win] || 0) + 1; P += +r.ppro || 0; Q += +r.pcon || 0; });
+  const best = cnt.pro > cnt.con && cnt.pro > cnt.draw ? "pro" : cnt.con > cnt.pro && cnt.con > cnt.draw ? "con" : P > Q ? "pro" : Q > P ? "con" : "draw";
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">심판 휴대폰 보고 ${reps.length}/${R.judges.length}명</div><div>찬성 승리 ${cnt.pro} · 반대 승리 ${cnt.con} · 무승부 ${cnt.draw} <span class="muted">(체크 합계 ${P} : ${Q})</span> → <b>${best === "draw" ? "무승부" : SIDE[best] + " 승리"}</b></div><button class="sm gold" id="plazaApply">판정에 반영</button></div>`;
+  $("plazaApply").onclick = () => { $("pWin").value = best; };
+}
