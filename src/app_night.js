@@ -104,7 +104,7 @@ function renderTally() {
   if (S.day < 2) { el.innerHTML = `<span class="muted">DAY 1은 연습 판이라 휴대폰 밤 행동이 없습니다.</span>`; return; }
   if (!NET.isTeacher()) { el.innerHTML = `<span class="muted">선생님 로그인 후 학생들의 휴대폰 선택이 여기에 실시간으로 모입니다.</span>`; return; }
   const t = tally(), line = (x, name) => `<div><b>${name} ${x.n}/${x.total}명 선택</b> ${Object.keys(x.counts).length ? Object.entries(x.counts).sort((a, b) => b[1] - a[1]).map(([s, v]) => `<span class="chip">${s}번 ${"●".repeat(v)}</span>`).join(" ") : `<span class="muted">아직 없음</span>`}${x.best ? ` → <b>${x.best}번</b>` : ""}</div>`;
-  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 실시간 집계</div>${line(t.m, "마피아")}${line(t.j, "심판")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm gold" id="tallyApply" ${t.m.best || t.j.best ? "" : "disabled"}>집계 결과 적용</button><button class="sm" id="tallyReset">휴대폰 선택 초기화</button></div><span class="muted" style="font-size:.82rem">밤 단계에서 ▶로 넘어가면 저장 안 된 집계가 자동 적용됩니다.</span></div>`;
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 실시간 집계</div>${line(t.m, "마피아")}${line(t.j, "심판")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm gold" id="tallyApply" ${t.m.best || t.j.best ? "" : "disabled"}>집계 결과 적용</button><button class="sm" id="tallyReset">휴대폰 선택 초기화</button></div><div class="dodoline">${dodoLine()}</div><span class="muted" style="font-size:.82rem">밤 단계에서 ▶로 넘어가면 저장 안 된 집계가 자동 적용됩니다.</span></div>`;
   const b = $("tallyApply"); if (b) b.onclick = () => applyTally(true);
   $("tallyReset").onclick = () => { if (confirmReset()) NET.put(`${roomPath(S.code)}/votes/d${S.day}`, null).catch(() => {}); };
 }
@@ -229,4 +229,87 @@ function teacherTipWatch() {
     if (!req) return;
     showTip(); chime(3);
   });
+}
+
+// ---------------- special role: 도도새 (from DAY 3, one random citizen is offered a job change) ----------------
+function dodoOrder(c) { const R = roles(c); return shuffle([...Array(c.n)].map((_, i) => i + 1).filter(s => !R.mafia.includes(s) && !R.judges.includes(s)), rng(hash(`dodo|${c.key}`))); }
+function dodoS() { if (!S.dodo) S.dodo = { offers: [], seat: null, day: null }; return S.dodo; }
+function dodoPending() {
+  if (S.day < 3 || S.ended) return null;
+  const D = dodoS(); if (D.seat) return null;
+  let o = D.offers.find(x => x[0] === S.day);
+  if (!o) {
+    D.offers.forEach(x => { if (x[2] == null) x[2] = "no"; });
+    const used = D.offers.map(x => x[1]), seat = dodoOrder(C()).find(s => !used.includes(s));
+    if (!seat) return null;
+    o = [S.day, seat, null]; D.offers.push(o); save();
+  }
+  return o[2] == null ? { day: o[0], seat: o[1] } : null;
+}
+const dodoWon = (st = S) => !!(st.dodo && st.dodo.seat && st.trials.some(t => t[1] === st.dodo.seat && t[0] >= st.dodo.day));
+function dodoLine() {
+  const D = S.dodo; if (S.day < 3 && !(D && D.offers.length)) return `<span class="muted">도도새 제안은 DAY 3 밤부터 휴대폰으로 갑니다.</span>`;
+  if (!D || !D.offers.length) return `<span class="muted">도도새 제안 준비 중 (진행을 시작하면 전송)</span>`;
+  if (D.seat) return `<b>도도새: ${D.seat}번</b> (DAY ${D.day} 수락)${dodoWon() ? ` · <span class="hit">재판대에 올라 승리!</span>` : ""}`;
+  const o = D.offers[D.offers.length - 1];
+  return `<b>도도새 제안</b> DAY ${o[0]} → ${o[1]}번 · ${o[2] == null ? "응답 대기" : o[2] === "yes" ? "수락" : "거절 (다음 날 다른 사람에게)"}`;
+}
+// teacher: watch answers
+let dodoSub = null, dodoKey = null;
+function teacherDodoWatch() {
+  const key = NET.isTeacher() && S ? S.code : null;
+  if (key === dodoKey) return;
+  dodoKey = key; if (dodoSub) { dodoSub(); dodoSub = null; }
+  if (!key) return;
+  dodoSub = NET.watch(`${roomPath(key)}/votes/dodo`, v => {
+    if (!v || S.code !== key || !S.dodo) return;
+    const o = S.dodo.offers.find(x => x[2] == null); if (!o) return;
+    const a = v["s" + o[1]]; if (!a || a.target !== 1 && a.target !== 2) return;
+    snap(); o[2] = a.target === 1 ? "yes" : "no";
+    if (o[2] === "yes") { S.dodo.seat = o[1]; S.dodo.day = o[0]; }
+    save(); chime(1); if (step === "night") renderTally(); schedulePublish();
+  });
+}
+// student: night popup + card
+const dodoAnsKey = (code, day, seat) => `ssi-dodo-ans-${code}-${day}-${seat}`;
+const dodoMineKey = (code, seat) => `ssi-dodo-${code}-${seat}`;
+let dodoShown = null;
+function renderDodo() {
+  const c = parseCode($("code").value), last = store.get("ssi-last4");
+  const e = c && last && last.code === c.code ? liveFor(c.code) : null, seat = +$("seat").value;
+  const o = e && e.dodo;
+  const want = o && o.seat === seat && o.day === e.day && e.phase === "밤" && !store.get(dodoAnsKey(c.code, o.day, seat));
+  if (!want) { if (dodoShown && dodoShown !== "answered") { dodoShown = null; $("stage").hidden = true; } return; }
+  const k = `${c.code}|${o.day}|${seat}`; if (dodoShown === k) return; dodoShown = k;
+  hideSplash();
+  $("stageInner").innerHTML = `<div class="kicker dodokick">NEW JOB OFFER · 비밀 알림</div>
+    <div class="dodoart">${DODO_SVG}</div>
+    <h2>직업을 변경하시겠습니까?</h2>
+    <div class="tipbody dodobody"><b>도도새</b>가 될 수 있습니다. 도도새는 마피아도 시민도 아닌 특수 직업입니다.<br><br>
+    <b>승리 조건</b>: 광장 재판에서 투표 1위로 <b>재판대에 오르면</b> 도도새 승리!<br>토론은 지금 입장 그대로 하되, 살짝 수상하게 행동해 의심을 받으세요. 너무 티 나면 아무도 뽑지 않습니다.</div>
+    <p class="muted" style="margin:0">이 알림은 나에게만 보입니다. 한 번 고르면 바꿀 수 없어요.</p>
+    <div class="tbtns" style="justify-content:stretch;display:grid;grid-template-columns:1fr 1fr;gap:10px"><button id="dodoNo">지금 직업 유지</button><button class="primary" id="dodoYes">도도새로 변경</button></div>`;
+  $("stage").hidden = false;
+  try { if (navigator.vibrate) navigator.vibrate([60, 60, 60, 60, 160]); } catch {}
+  const answer = async yes => {
+    $("dodoYes").disabled = $("dodoNo").disabled = true;
+    try {
+      await NET.ensureAnon();
+      await NET.put(`${roomPath(c.code)}/votes/dodo/s${seat}`, { uid: NET.user.uid, k: "m", target: yes ? 1 : 2, t: NET.stamp() });
+      store.set(dodoAnsKey(c.code, o.day, seat), yes ? 1 : 2); dodoShown = "answered";
+      if (yes) store.set(dodoMineKey(c.code, seat), o.day);
+      $("stageInner").innerHTML = yes ? `<div class="kicker dodokick">JOB CHANGED</div><div class="dodoart">${DODO_SVG}</div><h2>이제 당신은 도도새입니다</h2><p class="muted" style="margin:0">카드가 도도새 카드로 바뀌었습니다. 아무에게도 말하지 마세요.</p><button class="primary" id="stageClose" style="justify-self:end">확인</button>` : `<h2>지금 직업을 유지합니다</h2><button class="primary" id="stageClose" style="justify-self:end">확인</button>`;
+      $("stageClose").onclick = () => { $("stage").hidden = true; dodoShown = null; if ($("case")) showCard(false); };
+    } catch (err) { $("dodoYes").disabled = $("dodoNo").disabled = false; }
+  };
+  $("dodoYes").onclick = () => answer(true); $("dodoNo").onclick = () => answer(false);
+}
+const DODO_SVG = `<svg viewBox="0 0 120 110" aria-hidden="true"><ellipse cx="58" cy="70" rx="34" ry="28" fill="#7FA9B8"/><circle cx="82" cy="40" r="17" fill="#8FB9C6"/><path d="M95 38 q22 4 18 18 q-6 -8 -18 -6z" fill="#E5B550"/><circle cx="86" cy="36" r="3.5" fill="#13141B"/><path d="M30 60 q-14 -4 -18 8 q10 -2 18 2z" fill="#EEE8DC"/><rect x="48" y="94" width="5" height="12" rx="2" fill="#E5B550"/><rect x="64" y="94" width="5" height="12" rx="2" fill="#E5B550"/></svg>`;
+function dodoCard(c, seat, day, sealed) {
+  const since = store.get(dodoMineKey(c.code, seat));
+  if (!since || day < since) return null;
+  let h = cardHTML(c, seat, day, sealed, true);
+  h = h.replace(/<span class="stamp citizen">시민<\/span>/, '<span class="stamp dodo">도도새</span>');
+  h = h.replace(/<div class="evidence">/, `<div class="mission-box dodo-box">비밀 임무: 광장 재판에서 투표 1위로 재판대에 오르세요. 그러면 도도새 승리! 토론은 아래 근거로 평소처럼 하되, 살짝 수상하게.</div><div class="evidence">`);
+  return h;
 }

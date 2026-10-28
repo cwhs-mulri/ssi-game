@@ -23,6 +23,11 @@ html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.case .stamp.dodo { color: #1E8796; border-color: #1E8796 }
+.case .dodo-box { border: 1.5px solid #1E8796 !important; color: #0E3E46 !important; background: rgba(42,157,173,.14) !important; font-weight: 700 }
+.stage .dodokick { color: #7FD3E0 } .stage .dodoart { width: 120px; height: 110px } .stage .dodoart svg { width: 100%; height: 100% }
+.stage .dodobody { border-color: #7FD3E0; background: rgba(127,211,224,.08); font-size: 1rem; line-height: 1.6 }
+.dodoline { font-size: .9rem }
 .tipbtn { width: 100%; min-height: 64px; border-radius: 16px; border: 2px solid #E0533F; background: linear-gradient(180deg, #5A1E19, #3A1411); color: #FFE3DE; font-size: 1.2rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 0 0 4px #E0533F22, 0 8px 24px #E0533F33; animation: tippulse 2.4s ease-in-out infinite }
 .tipbtn.arm { background: #E0533F; color: #fff; animation: none }
 .tipbtn[disabled] { opacity: .55; animation: none }
@@ -110,13 +115,13 @@ js = R(js, '''  const e = c && liveFor(c.code);
   const strip = $("liveStrip");''')
 js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
 js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
-          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox();\n}')
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
-js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; teacherWatch(); teacherTipWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
 # teacher fullscreen news mirrored to students
@@ -138,6 +143,12 @@ js = R(js, '  showStage(`<div class="kicker">ANONYMOUS TIP', '  stageLive = { k:
 js = R(js, '$("tipReveal").onclick = () => { $("tipWhy").hidden = false; };', '$("tipReveal").onclick = () => { $("tipWhy").hidden = false; if (stageLive && stageLive.k === "tip") { stageLive = Object.assign({}, stageLive, { why }); schedulePublish(); } };')
 js = R(js, 'stage: stageLive, out:', 'stage: stageLive, tipUsed: !!S.tip, out:')
 js = R(js, '"마피아가 신호를 보내면 사용"', '"마피아가 휴대폰으로 제보하면 자동으로 뜹니다. 직접 띄워도 됩니다"')
+# 도도새 special role hooks
+js = R(js, 'function cardHTML(c, seat, day, sealed = true) {', 'function cardHTML(c, seat, day, sealed = true, noDodo = false) {\n  if (!noDodo) { const dc = dodoCard(c, seat, day, sealed); if (dc) return dc; }')
+js = R(js, 'stage: stageLive, tipUsed: !!S.tip, out:', 'stage: stageLive, tipUsed: !!S.tip, dodo: dodoPending(), out:')
+js = R(js, '`<span class="miss">${last[1]}번은 마피아가 아닙니다. 누명이었습니다.</span>`', '(S.dodo && S.dodo.seat === last[1] && last[0] >= S.dodo.day ? `<span class="hit">${last[1]}번은 마피아가 아닙니다. 사실 도도새였습니다! 재판대에 올라 도도새 승리!</span>` : `<span class="miss">${last[1]}번은 마피아가 아닙니다. 누명이었습니다.</span>`)')
+js = R(js, '${hit ? "마피아 체포" : "시민, 누명"}', '${hit ? "마피아 체포" : S.dodo && S.dodo.seat === s && dd >= S.dodo.day ? "도도새 승리" : "시민, 누명"}')
+js = R(js, '`${s}번은 시민이었습니다. 누명이었습니다.`', '(S.dodo && S.dodo.seat === s && S.dodo.day <= d - 1 ? `${s}번은 사실 도도새였습니다! 재판대에 오르는 데 성공해 도도새가 승리했습니다.` : `${s}번은 시민이었습니다. 누명이었습니다.`)')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)
