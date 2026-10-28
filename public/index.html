@@ -295,6 +295,21 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
+.stabs { position: relative; display: none; gap: 4px; background: #151722; border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin: 2px 0 10px }
+.stabs button { position: relative; z-index: 1; flex: 1; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: .92rem; min-height: 40px; border-radius: 999px }
+.stabs button.on { color: #13141B } .stabs .dot { display: none; position: absolute; top: 7px; right: 14%; width: 8px; height: 8px; border-radius: 50%; background: #E0533F }
+.stabs button.new .dot { display: block } .stabs .sbar { position: absolute; z-index: 0; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 999px; background: var(--paper); transition: transform .3s ease, width .3s ease }
+.swipe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, .9fr); gap: 16px; align-items: start }
+.slide { display: grid; gap: 12px; align-content: start; min-width: 0 }
+.slidelink { display: none; justify-self: end; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; color: var(--gold); font-weight: 700 }
+.swipehint { display: none; text-align: center; font-size: .8rem; margin: 8px 0 0 }
+@media (max-width: 760px) {
+  .stabs { display: flex } .slidelink, .swipehint { display: block } .slidelink { display: inline-block }
+  .swipe { display: flex; gap: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; align-items: flex-start; transition: height .25s ease; -webkit-overflow-scrolling: touch }
+  .swipe::-webkit-scrollbar { display: none }
+  .slide { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; padding: 0 2px 4px }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) { .swipe, .stabs .sbar { transition: none } }
 .judgep { border: 1px solid #2E6B55; background: #0F1D18; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px }
 .judgep h3 { margin: 0; color: var(--judge, #4CC08F); font-size: 1.05rem } .judgep p { margin: 0; font-size: .88rem; color: var(--muted); word-break: keep-all }
 .jsides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
@@ -452,7 +467,7 @@ nav { flex-wrap: wrap }
       <p class="muted" style="font-size:.9rem;margin:4px 0 0">처음이라면 <a href="#guide" style="color:var(--gold)">게임 방법</a>을 먼저 보세요. 1분이면 됩니다.</p>
     </section>
     <section aria-live="polite">
-      <div id="cardSlot" class="empty"><div><strong style="font-family:var(--f-display);font-size:1.6rem;font-weight:400;color:var(--paper)">카드가 여기에 나타납니다</strong><br>왼쪽에 코드와 출석번호를 입력하세요.</div></div>
+      <div id="cardSlot" class="empty"><div><strong style="font-family:var(--f-display);font-size:1.6rem;font-weight:400;color:var(--paper)">카드가 여기에 나타납니다</strong><br>접속 화면에서 코드와 출석번호를 입력하세요.</div></div>
     </section>
     </div>
   </main>
@@ -2310,7 +2325,7 @@ function showSplash(e) {
   const el = $("splash");
   el.className = `splash sp-${kind}`;
   el.innerHTML = `<div class="sp-in"><div class="sp-art">${SP_ART[kind] || ""}</div><div class="sp-k">DAY ${e.day}${e.day === 1 ? " · 연습" : ""}</div><h2>${esc(title)}</h2><p>${esc(sub)}</p><span class="sp-tap">화면을 누르면 닫힙니다</span></div>`;
-  el.hidden = false; void el.offsetWidth; el.classList.add("show");
+  el.hidden = false; void el.offsetWidth; el.classList.add("show"); goSlide("now", false);
   try { if (navigator.vibrate) navigator.vibrate(kind === "night" ? [80, 120, 80] : 120); } catch {}
   clearTimeout(splashTimer); splashTimer = setTimeout(hideSplash, kind === "night" || kind === "dawn" ? 3600 : 2600);
 }
@@ -2537,6 +2552,44 @@ function renderPlazaRep() {
   $("plazaApply").onclick = () => { $("pWin").value = best; };
 }
 
+// ---------------- student layout: swipeable slides (지금 · 내 카드 · 접속) ----------------
+const SLIDES = [["now", "지금 진행"], ["card", "내 카드"], ["join", "접속"]];
+let slideCur = 0;
+const swipe = (() => {
+  const view = $("viewStudent"), wrap = document.createElement("div"), tabs = document.createElement("div");
+  tabs.className = "stabs"; tabs.setAttribute("role", "tablist");
+  tabs.innerHTML = SLIDES.map(([k, t], i) => `<button type="button" role="tab" data-i="${i}" id="stab-${k}">${t}<i class="dot"></i></button>`).join("") + `<span class="sbar" id="sbar"></span>`;
+  wrap.className = "swipe"; wrap.id = "swipe";
+  const mk = k => { const d = document.createElement("div"); d.className = "slide"; d.dataset.k = k; wrap.appendChild(d); return d; };
+  const sNow = mk("now"), sCard = mk("card"), sJoin = mk("join");
+  const joinSec = $("joinForm").closest("section"), cardSec = $("cardSlot").closest("section"), stu = view.querySelector(".student");
+  ["liveBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
+  const toCard = document.createElement("button"); toCard.type = "button"; toCard.className = "slidelink"; toCard.textContent = "내 카드 보기 →"; toCard.onclick = () => goSlide("card"); sNow.appendChild(toCard);
+  sCard.appendChild(cardSec); sJoin.appendChild(joinSec);
+  const hint = document.createElement("p"); hint.className = "muted swipehint"; hint.textContent = "← 옆으로 넘겨서 다른 화면을 볼 수 있어요 →";
+  stu.replaceWith(tabs); tabs.after(wrap); wrap.after(hint);
+  return { wrap, tabs, slides: [sNow, sCard, sJoin] };
+})();
+const narrow = () => window.matchMedia("(max-width: 760px)").matches;
+function fitSlide() { if (!narrow()) { swipe.wrap.style.height = ""; return; } const s = swipe.slides[slideCur]; swipe.wrap.style.height = s.scrollHeight + "px"; }
+function markTabs() {
+  swipe.tabs.querySelectorAll("button").forEach((b, i) => { b.classList.toggle("on", i === slideCur); b.setAttribute("aria-selected", String(i === slideCur)); if (i === slideCur) b.classList.remove("new"); });
+  const bar = $("sbar"), b = swipe.tabs.querySelectorAll("button")[slideCur]; if (bar && b) { bar.style.width = b.offsetWidth + "px"; bar.style.transform = `translateX(${b.offsetLeft}px)`; }
+}
+function goSlide(k, smooth = true) {
+  const i = typeof k === "number" ? k : SLIDES.findIndex(x => x[0] === k); if (i < 0) return;
+  slideCur = i; markTabs(); fitSlide();
+  if (narrow()) swipe.wrap.scrollTo({ left: i * swipe.wrap.clientWidth, behavior: smooth ? "smooth" : "auto" });
+}
+function badge(k) { const i = SLIDES.findIndex(x => x[0] === k); if (i !== slideCur) { const b = $("stab-" + k); if (b) b.classList.add("new"); } }
+swipe.tabs.querySelectorAll("button").forEach(b => b.onclick = () => goSlide(+b.dataset.i));
+let swT = null;
+swipe.wrap.addEventListener("scroll", () => { clearTimeout(swT); swT = setTimeout(() => { const i = Math.round(swipe.wrap.scrollLeft / Math.max(1, swipe.wrap.clientWidth)); if (i !== slideCur) { slideCur = i; markTabs(); fitSlide(); } }, 80); }, { passive: true });
+try { const ro = new ResizeObserver(() => fitSlide()); swipe.slides.forEach(s => ro.observe(s)); } catch {}
+window.addEventListener("resize", () => { markTabs(); fitSlide(); if (narrow()) swipe.wrap.scrollTo({ left: slideCur * swipe.wrap.clientWidth }); });
+// new actions appear -> badge the 지금 tab
+try { const mo = new MutationObserver(() => { if (["nightBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
+
 // ---------------- student ----------------
 fillSelect($("day"), 1, 6, 1, v => `DAY ${v}${v === 1 ? " (연습)" : ""}`);
 function syncSeats() { const c = parseCode($("code").value); const n = c ? c.n : 30; const cur = +$("seat").value || 1; fillSelect($("seat"), 1, n, Math.min(cur, n), v => `${v}번`); }
@@ -2552,7 +2605,7 @@ $("joinForm").addEventListener("submit", e => {
   $("joinErr").textContent = "";
   store.set("ssi-last4", { code: c.code, seat: +$("seat").value, day: +$("day").value });
   liveFlash = ""; showCard(false); watchLive(c.code); renderLive();
-  if (window.matchMedia("(max-width: 760px)").matches) $("cardSlot").scrollIntoView({ behavior: "smooth" });
+  goSlide("card");
 });
 
 
@@ -2577,7 +2630,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1028-2059</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1028-2104</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }
@@ -2919,6 +2972,7 @@ load(); buildPhases(); restoreRun(); renderAllT(); renderScene(); newQuiz(); ren
 NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });
 { const cs = ss.get("ssi-card"); if (cs && cs.shown && parseCode($("code").value)) { const sameDay = cs.day === +$("day").value; renderLive(); showCard(sameDay && cs.open); } }
 renderLive();
+goSlide(store.get("ssi-last4") ? "now" : "join", false); requestAnimationFrame(() => { markTabs(); fitSlide(); });
 booted = true;
 })();
 </script>

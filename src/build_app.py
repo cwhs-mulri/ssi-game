@@ -20,9 +20,25 @@ def R(s, a, b, cnt=1):
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
 html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
+html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>접속 화면에서 코드와 출석번호를 입력하세요.')
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 css = '''
+.stabs { position: relative; display: none; gap: 4px; background: #151722; border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin: 2px 0 10px }
+.stabs button { position: relative; z-index: 1; flex: 1; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: .92rem; min-height: 40px; border-radius: 999px }
+.stabs button.on { color: #13141B } .stabs .dot { display: none; position: absolute; top: 7px; right: 14%; width: 8px; height: 8px; border-radius: 50%; background: #E0533F }
+.stabs button.new .dot { display: block } .stabs .sbar { position: absolute; z-index: 0; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 999px; background: var(--paper); transition: transform .3s ease, width .3s ease }
+.swipe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, .9fr); gap: 16px; align-items: start }
+.slide { display: grid; gap: 12px; align-content: start; min-width: 0 }
+.slidelink { display: none; justify-self: end; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; color: var(--gold); font-weight: 700 }
+.swipehint { display: none; text-align: center; font-size: .8rem; margin: 8px 0 0 }
+@media (max-width: 760px) {
+  .stabs { display: flex } .slidelink, .swipehint { display: block } .slidelink { display: inline-block }
+  .swipe { display: flex; gap: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; align-items: flex-start; transition: height .25s ease; -webkit-overflow-scrolling: touch }
+  .swipe::-webkit-scrollbar { display: none }
+  .slide { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; padding: 0 2px 4px }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) { .swipe, .stabs .sbar { transition: none } }
 .judgep { border: 1px solid #2E6B55; background: #0F1D18; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px }
 .judgep h3 { margin: 0; color: var(--judge, #4CC08F); font-size: 1.05rem } .judgep p { margin: 0; font-size: .88rem; color: var(--muted); word-break: keep-all }
 .jsides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
@@ -165,6 +181,9 @@ js = R(js, '`${s}번은 시민이었습니다. 누명이었습니다.`', '(S.dod
 js = R(js, '<div class="result">${pz.win ? `광장 대표토론:', '<div id="plazaRep" class="tally"></div>\n      <div class="result">${pz.win ? `광장 대표토론:')
 js = R(js, '["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"', 'renderPlazaRep();\n    ["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"')
 js = R(js, '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}</span></div>', '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}</span></div>')
+# swipe layout: after joining go to the card slide; initial slide on boot
+js = R(js, 'if (window.matchMedia("(max-width: 760px)").matches) $("cardSlot").scrollIntoView({ behavior: "smooth" });', 'goSlide("card");')
+js = R(js, '\nrenderLive();\nbooted = true;', '\nrenderLive();\ngoSlide(store.get("ssi-last4") ? "now" : "join", false); requestAnimationFrame(() => { markTabs(); fitSlide(); });\nbooted = true;')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

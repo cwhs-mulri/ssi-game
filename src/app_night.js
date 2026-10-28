@@ -164,7 +164,7 @@ function showSplash(e) {
   const el = $("splash");
   el.className = `splash sp-${kind}`;
   el.innerHTML = `<div class="sp-in"><div class="sp-art">${SP_ART[kind] || ""}</div><div class="sp-k">DAY ${e.day}${e.day === 1 ? " · 연습" : ""}</div><h2>${esc(title)}</h2><p>${esc(sub)}</p><span class="sp-tap">화면을 누르면 닫힙니다</span></div>`;
-  el.hidden = false; void el.offsetWidth; el.classList.add("show");
+  el.hidden = false; void el.offsetWidth; el.classList.add("show"); goSlide("now", false);
   try { if (navigator.vibrate) navigator.vibrate(kind === "night" ? [80, 120, 80] : 120); } catch {}
   clearTimeout(splashTimer); splashTimer = setTimeout(hideSplash, kind === "night" || kind === "dawn" ? 3600 : 2600);
 }
@@ -390,3 +390,41 @@ function renderPlazaRep() {
   el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">심판 휴대폰 보고 ${reps.length}/${R.judges.length}명</div><div>찬성 승리 ${cnt.pro} · 반대 승리 ${cnt.con} · 무승부 ${cnt.draw} <span class="muted">(체크 합계 ${P} : ${Q})</span> → <b>${best === "draw" ? "무승부" : SIDE[best] + " 승리"}</b></div><button class="sm gold" id="plazaApply">판정에 반영</button></div>`;
   $("plazaApply").onclick = () => { $("pWin").value = best; };
 }
+
+// ---------------- student layout: swipeable slides (지금 · 내 카드 · 접속) ----------------
+const SLIDES = [["now", "지금 진행"], ["card", "내 카드"], ["join", "접속"]];
+let slideCur = 0;
+const swipe = (() => {
+  const view = $("viewStudent"), wrap = document.createElement("div"), tabs = document.createElement("div");
+  tabs.className = "stabs"; tabs.setAttribute("role", "tablist");
+  tabs.innerHTML = SLIDES.map(([k, t], i) => `<button type="button" role="tab" data-i="${i}" id="stab-${k}">${t}<i class="dot"></i></button>`).join("") + `<span class="sbar" id="sbar"></span>`;
+  wrap.className = "swipe"; wrap.id = "swipe";
+  const mk = k => { const d = document.createElement("div"); d.className = "slide"; d.dataset.k = k; wrap.appendChild(d); return d; };
+  const sNow = mk("now"), sCard = mk("card"), sJoin = mk("join");
+  const joinSec = $("joinForm").closest("section"), cardSec = $("cardSlot").closest("section"), stu = view.querySelector(".student");
+  ["liveBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
+  const toCard = document.createElement("button"); toCard.type = "button"; toCard.className = "slidelink"; toCard.textContent = "내 카드 보기 →"; toCard.onclick = () => goSlide("card"); sNow.appendChild(toCard);
+  sCard.appendChild(cardSec); sJoin.appendChild(joinSec);
+  const hint = document.createElement("p"); hint.className = "muted swipehint"; hint.textContent = "← 옆으로 넘겨서 다른 화면을 볼 수 있어요 →";
+  stu.replaceWith(tabs); tabs.after(wrap); wrap.after(hint);
+  return { wrap, tabs, slides: [sNow, sCard, sJoin] };
+})();
+const narrow = () => window.matchMedia("(max-width: 760px)").matches;
+function fitSlide() { if (!narrow()) { swipe.wrap.style.height = ""; return; } const s = swipe.slides[slideCur]; swipe.wrap.style.height = s.scrollHeight + "px"; }
+function markTabs() {
+  swipe.tabs.querySelectorAll("button").forEach((b, i) => { b.classList.toggle("on", i === slideCur); b.setAttribute("aria-selected", String(i === slideCur)); if (i === slideCur) b.classList.remove("new"); });
+  const bar = $("sbar"), b = swipe.tabs.querySelectorAll("button")[slideCur]; if (bar && b) { bar.style.width = b.offsetWidth + "px"; bar.style.transform = `translateX(${b.offsetLeft}px)`; }
+}
+function goSlide(k, smooth = true) {
+  const i = typeof k === "number" ? k : SLIDES.findIndex(x => x[0] === k); if (i < 0) return;
+  slideCur = i; markTabs(); fitSlide();
+  if (narrow()) swipe.wrap.scrollTo({ left: i * swipe.wrap.clientWidth, behavior: smooth ? "smooth" : "auto" });
+}
+function badge(k) { const i = SLIDES.findIndex(x => x[0] === k); if (i !== slideCur) { const b = $("stab-" + k); if (b) b.classList.add("new"); } }
+swipe.tabs.querySelectorAll("button").forEach(b => b.onclick = () => goSlide(+b.dataset.i));
+let swT = null;
+swipe.wrap.addEventListener("scroll", () => { clearTimeout(swT); swT = setTimeout(() => { const i = Math.round(swipe.wrap.scrollLeft / Math.max(1, swipe.wrap.clientWidth)); if (i !== slideCur) { slideCur = i; markTabs(); fitSlide(); } }, 80); }, { passive: true });
+try { const ro = new ResizeObserver(() => fitSlide()); swipe.slides.forEach(s => ro.observe(s)); } catch {}
+window.addEventListener("resize", () => { markTabs(); fitSlide(); if (narrow()) swipe.wrap.scrollTo({ left: slideCur * swipe.wrap.clientWidth }); });
+// new actions appear -> badge the 지금 tab
+try { const mo = new MutationObserver(() => { if (["nightBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
