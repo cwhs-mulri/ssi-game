@@ -295,6 +295,16 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
+.sguide { border: 1.5px solid var(--gold); border-radius: 14px; background: #1E1A10; padding: 12px 14px; display: grid; gap: 10px; margin: 4px 0 6px }
+.sghead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap } .sghead b { color: var(--gold); font-size: 1.05rem } .sghead button { margin-left: auto }
+.sguide.fold .sgsteps { display: none }
+.sgsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.sgsteps li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: #15161E; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px }
+.sgsteps li.key { border-color: var(--gold); background: #2A2312 } .sgsteps li.key b { font-size: 1.1rem }
+.sgsteps .n { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #13141B; display: grid; place-items: center; font-weight: 800 }
+.sgsteps small { display: block; color: var(--muted); font-size: .85rem; word-break: keep-all }
+.sgsteps .kbd { font-family: var(--f-mono); border: 1px solid #5A5040; border-bottom-width: 3px; border-radius: 8px; padding: 4px 10px; color: var(--paper); white-space: nowrap }
+.sgsteps .okc { color: var(--judge, #4CC08F); font-weight: 800 } .sgsteps .noc { color: var(--stamp); font-weight: 800 }
 body.boardmode { padding: 0 !important } body.boardmode header { display: none } body.boardmode .wrap { max-width: none; padding: 0; gap: 0 }
 .eboard { display: block; min-height: 100vh } .bwrap > .bqr { justify-self: center }
 body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boardmode .stage .kicker { font-size: 1.3rem } body.boardmode .stage h2 { font-size: 3.4rem } body.boardmode .stage .item { font-size: 1.6rem } body.boardmode .stage .tipbody { font-size: 2rem }
@@ -2713,6 +2723,23 @@ function toggleSecret() {
 }
 $("boardBtn").onclick = openBoard; $("secretBtn").onclick = toggleSecret;
 
+// ---------------- teacher setup: classroom screen checklist ----------------
+function setupGuide() {
+  const folded = store.get("ssi-guide-fold") === true;
+  const ok = NET.isTeacher();
+  return `<div class="sguide ${folded ? "fold" : ""}"><div class="sghead"><b>수업 전 화면 연결</b><span class="muted">노트북 + 전자칠판(HDMI)</span><button class="sm" id="sgFold">${folded ? "펼치기" : "접기"}</button></div>
+    <ol class="sgsteps">
+      <li class="key"><span class="n">1</span><div><b>Windows 키 + P → '확장'</b><small>'복제'로 두면 노트북 화면(비밀 명단·밤 집계)이 전자칠판에 그대로 나갑니다.</small></div><span class="kbd">⊞ Win + P</span></li>
+      <li><span class="n">2</span><div><b>선생님 로그인 확인</b><small>${ok ? `로그인됨 · ${esc(NET.user && NET.user.email || "로컬 모드")}` : "위쪽 '선생님 로그인'을 눌러 주세요. 로그인해야 학생 휴대폰과 연동됩니다."}</small></div><span class="${ok ? "okc" : "noc"}">${ok ? "완료" : "필요"}</span></li>
+      <li><span class="n">3</span><div><b>전자칠판 화면 열기</b><small>새 창이 뜨면 전자칠판 쪽으로 끌어다 놓으세요.</small></div><button class="sm gold" id="sgBoard">전자칠판 화면 열기</button></li>
+      <li><span class="n">4</span><div><b>전자칠판 창에서 F11</b><small>전체 화면이 됩니다. 진행은 노트북에서만 하세요.</small></div><span class="kbd">F11</span></li>
+    </ol></div>`;
+}
+function bindSetupGuide() {
+  const f = $("sgFold"); if (f) f.onclick = () => { store.set("ssi-guide-fold", !(store.get("ssi-guide-fold") === true)); renderStep(); };
+  const b = $("sgBoard"); if (b) b.onclick = openBoard;
+}
+
 // ---------------- student ----------------
 fillSelect($("day"), 1, 6, 1, v => `DAY ${v}${v === 1 ? " (연습)" : ""}`);
 function syncSeats() { const c = parseCode($("code").value); const n = c ? c.n : 30; const cur = +$("seat").value || 1; fillSelect($("seat"), 1, n, Math.min(cur, n), v => `${v}번`); }
@@ -2753,7 +2780,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1120</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1153</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }
@@ -2862,13 +2889,13 @@ function renderStep() {
   const c = C(), R = roles(c), d = S.day, P = $("tpanel");
   if (!stepAvail(step)) step = "setup";
   if (step === "setup") {
-    P.innerHTML = `${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}
+    P.innerHTML = `${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}${setupGuide()}
       <div class="qrbox"><img src="${QR_SRC}" alt="게임 페이지 QR 코드"><div><div class="muted" style="font-size:.85rem">학생 접속: QR → '학생 카드' → 아래 코드 입력</div><div class="codebig">${esc(S.code)}</div><div class="muted" style="margin-top:6px">DAY ${d} · ${esc(TOPICS[dayTopic(c, d)].name)} · ${R.D.length}개 구역 · 마피아 ${R.mafia.length}명 · 구역 심판 ${R.judges.map((s, i) => `${i + 1}구역 ${s}번`).join(", ")}</div></div></div>
       <div class="rowx"><label class="f" for="tN">반 인원<select id="tN"></select></label><label class="f" for="tD">시즌 길이<select id="tD"></select></label><span id="newArea" style="flex:1;min-width:200px"></span></div>
       <div class="used">${[...Array(S.days)].map((_, i) => `<span class="t ${i + 1 < d ? "done" : ""}" ${i + 1 === d ? 'style="border-color:var(--gold);color:var(--gold)"' : ""}>DAY ${i + 1}${isPlazaDay(i + 1, S.days) ? "★" : ""} ${esc(TOPICS[dayTopic(c, i + 1)].name)}</span>`).join("")}<span>★ 광장 대표토론</span></div>
       <ul class="todo"><li>학생들은 시즌 내내 같은 출석번호를 씁니다. 구역은 출석번호 순으로 자동 편성됩니다.</li><li>심판은 공개해도 됩니다. 구역 심판에게 체크리스트 역할을 알려 주세요.</li><li>준비가 끝나면 위쪽 막대의 '시작'을 누르고 밤부터 진행합니다.</li></ul>
       <div class="next-row"><span class="muted">${d === 1 ? "DAY 1은 연습 판: 밤의 행동과 재판이 없습니다." : ""}</span>${nextStepBtn("시작")}</div>`;
-    fillSelect($("tN"), 12, 30, c.n, v => `${v}명`); fillSelect($("tD"), 3, 6, S.days, v => `${v}일`);
+    bindSetupGuide(); fillSelect($("tN"), 12, 30, c.n, v => `${v}명`); fillSelect($("tD"), 3, 6, S.days, v => `${v}일`);
     newIdle();
   } else if (step === "night") {
     const nt = S.night[d] || {}, everyone = [...Array(c.n)].map((_, i) => i + 1).filter(s => !caughtBefore(d).includes(s));
@@ -3093,7 +3120,7 @@ $("tPrev").onclick = () => { if (pi > 0) { pi--; setPhase(); phaseMoved(); } };
 
 // ---------------- boot ----------------
 load(); buildPhases(); restoreRun(); renderAllT(); renderScene(); newQuiz(); renderSamples(); route();
-NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });
+NET.onAuth(() => { renderAuth(); if (step === "setup" && booted) renderStep(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });
 { const cs = ss.get("ssi-card"); if (cs && cs.shown && parseCode($("code").value)) { const sameDay = cs.day === +$("day").value; renderLive(); showCard(sameDay && cs.open); } }
 renderLive();
 goSlide(store.get("ssi-last4") ? "now" : "join", false); requestAnimationFrame(() => { markTabs(); fitSlide(); });

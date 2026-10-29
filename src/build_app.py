@@ -27,6 +27,16 @@ html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id=
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.sguide { border: 1.5px solid var(--gold); border-radius: 14px; background: #1E1A10; padding: 12px 14px; display: grid; gap: 10px; margin: 4px 0 6px }
+.sghead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap } .sghead b { color: var(--gold); font-size: 1.05rem } .sghead button { margin-left: auto }
+.sguide.fold .sgsteps { display: none }
+.sgsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px }
+.sgsteps li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: #15161E; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px }
+.sgsteps li.key { border-color: var(--gold); background: #2A2312 } .sgsteps li.key b { font-size: 1.1rem }
+.sgsteps .n { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #13141B; display: grid; place-items: center; font-weight: 800 }
+.sgsteps small { display: block; color: var(--muted); font-size: .85rem; word-break: keep-all }
+.sgsteps .kbd { font-family: var(--f-mono); border: 1px solid #5A5040; border-bottom-width: 3px; border-radius: 8px; padding: 4px 10px; color: var(--paper); white-space: nowrap }
+.sgsteps .okc { color: var(--judge, #4CC08F); font-weight: 800 } .sgsteps .noc { color: var(--stamp); font-weight: 800 }
 body.boardmode { padding: 0 !important } body.boardmode header { display: none } body.boardmode .wrap { max-width: none; padding: 0; gap: 0 }
 .eboard { display: block; min-height: 100vh } .bwrap > .bqr { justify-self: center }
 body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boardmode .stage .kicker { font-size: 1.3rem } body.boardmode .stage h2 { font-size: 3.4rem } body.boardmode .stage .item { font-size: 1.6rem } body.boardmode .stage .tipbody { font-size: 2rem }
@@ -225,6 +235,10 @@ js = R(js, 'if (c && store.get("ssi-last4") && store.get("ssi-last4").code === c
 js = R(js, 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1);', 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1); schedulePublish();')
 js = R(js, 'alert: p[4] === "news"', 'verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news"')
 js = R(js, '  remain = phases[pi][1]; if (typeof stageLive', '  remain = phases[pi][1]; if ($("secretPanel") && !$("secretPanel").hidden) renderSecret(); if (typeof stageLive')
+# setup step: classroom screen checklist
+js = R(js, '${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}', '${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}${setupGuide()}')
+js = R(js, 'fillSelect($("tN"), 12, 30, c.n, v => `${v}명`);', 'bindSetupGuide(); fillSelect($("tN"), 12, 30, c.n, v => `${v}명`);')
+js = R(js, 'NET.onAuth(() => { renderAuth();', 'NET.onAuth(() => { renderAuth(); if (step === "setup" && booted) renderStep();')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

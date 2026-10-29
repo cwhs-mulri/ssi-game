@@ -517,3 +517,20 @@ function toggleSecret() {
   clearTimeout(secretTimer); if (!P.hidden) { renderSecret(); secretTimer = setTimeout(() => { if (!P.hidden) toggleSecret(); }, 20000); }
 }
 $("boardBtn").onclick = openBoard; $("secretBtn").onclick = toggleSecret;
+
+// ---------------- teacher setup: classroom screen checklist ----------------
+function setupGuide() {
+  const folded = store.get("ssi-guide-fold") === true;
+  const ok = NET.isTeacher();
+  return `<div class="sguide ${folded ? "fold" : ""}"><div class="sghead"><b>수업 전 화면 연결</b><span class="muted">노트북 + 전자칠판(HDMI)</span><button class="sm" id="sgFold">${folded ? "펼치기" : "접기"}</button></div>
+    <ol class="sgsteps">
+      <li class="key"><span class="n">1</span><div><b>Windows 키 + P → '확장'</b><small>'복제'로 두면 노트북 화면(비밀 명단·밤 집계)이 전자칠판에 그대로 나갑니다.</small></div><span class="kbd">⊞ Win + P</span></li>
+      <li><span class="n">2</span><div><b>선생님 로그인 확인</b><small>${ok ? `로그인됨 · ${esc(NET.user && NET.user.email || "로컬 모드")}` : "위쪽 '선생님 로그인'을 눌러 주세요. 로그인해야 학생 휴대폰과 연동됩니다."}</small></div><span class="${ok ? "okc" : "noc"}">${ok ? "완료" : "필요"}</span></li>
+      <li><span class="n">3</span><div><b>전자칠판 화면 열기</b><small>새 창이 뜨면 전자칠판 쪽으로 끌어다 놓으세요.</small></div><button class="sm gold" id="sgBoard">전자칠판 화면 열기</button></li>
+      <li><span class="n">4</span><div><b>전자칠판 창에서 F11</b><small>전체 화면이 됩니다. 진행은 노트북에서만 하세요.</small></div><span class="kbd">F11</span></li>
+    </ol></div>`;
+}
+function bindSetupGuide() {
+  const f = $("sgFold"); if (f) f.onclick = () => { store.set("ssi-guide-fold", !(store.get("ssi-guide-fold") === true)); renderStep(); };
+  const b = $("sgBoard"); if (b) b.onclick = openBoard;
+}
