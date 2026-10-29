@@ -13,7 +13,7 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v);
+      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v); renderBoard(v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -160,7 +160,7 @@ const SP_ART = {
 };
 let splashTimer = null;
 function showSplash(e) {
-  if ($("viewStudent").hidden) return;
+  if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const [kind, title, sub] = SPLASH[e.phase] || ["wrap", e.phase, "선생님 안내를 따르세요"];
   const el = $("splash");
   el.className = `splash sp-${kind}`;
@@ -177,7 +177,7 @@ var stageLive = null;
 function stageClosed() { if (stageLive) { stageLive = null; schedulePublish(); } }
 let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
-  if ($("viewStudent").hidden) return;
+  if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const st = v && v.stage;
   if (st && (st.k === "news" || st.k === "frame" || st.k === "tip")) {
     const sk = st.at + (st.why ? "|w" : "");
@@ -446,8 +446,9 @@ try { const mo = new MutationObserver(() => { if (["nightBox", "tipBox", "judgeB
 // ---------------- phone alert: 도도새 주의보 (morning after a 도도새 appears) ----------------
 let alertTimer = null;
 function checkAlert(code, v) {
-  const a = v && v.alert; if (!a || a.k !== "dodo" || $("viewStudent").hidden) return;
-  const k = `ssi-alert-${code}-${a.day}`; if (store.get(k)) return;
+  const a = v && v.alert; if (!a || a.k !== "dodo" || $("viewStudent").hidden && $("viewBoard").hidden) return;
+  const k0 = $("viewBoard").hidden ? "" : "b";
+  const k = `ssi-alert${k0}-${code}-${a.day}`; if (store.get(k)) return;
   store.set(k, 1);
   clearTimeout(alertTimer);
   alertTimer = setTimeout(() => {
@@ -460,3 +461,59 @@ function checkAlert(code, v) {
     $("stageClose").onclick = () => { $("stage").hidden = true; };
   }, !$("splash").hidden ? 3700 : 300);
 }
+
+// ---------------- 전자칠판(board) view: public info only ----------------
+let boardSubCode = null, BOARDV = null, verdictKey = null;
+function boardCode() { const cl = store.get("ssi-v3-class") ?? 0, st = store.get(`ssi-v3-${cl}`); return st && parseCode(st.code) ? parseCode(st.code).code : null; }
+function boardStart() {
+  const code = boardCode();
+  if (!code) { $("viewBoard").innerHTML = `<div class="bwait">선생님 화면에서 반과 시즌을 먼저 준비하세요.</div>`; return; }
+  if (boardSubCode !== code) { boardSubCode = code; liveCode = null; watchLive(code); }
+  renderBoard(NETLIVE[code]);
+}
+window.addEventListener("storage", e => { if (!$("viewBoard").hidden && e.key && e.key.startsWith("ssi-v3-")) boardStart(); });
+function renderBoard(e) {
+  const el = $("viewBoard"); if (el.hidden) return;
+  const c = parseCode(boardSubCode || "");
+  if (!c) return;
+  const qr = `<div class="bqr"><img src="${QR_SRC}" alt="학생 접속 QR"><div><b>ssi-game.web.app</b><span>시즌 코드</span><strong>${esc(c.code)}</strong></div></div>`;
+  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p></div>${qr}</div>`; return; }
+  const T = TOPICS[dayTopic(c, e.day)], [msg, ph] = STU[e.phase] || ["선생님 안내를 따르세요.", "down"], [pc, pt] = PHONE[ph], r = liveRemain(e);
+  let extra = "";
+  if (e.scores && e.scores.length) { const mx = Math.max(1, ...e.scores); extra = `<div class="bscore">${e.scores.map((v, i) => `<div><span>${i + 1}구역</span><i style="width:${Math.round(v / mx * 100)}%"></i><b>${v}</b></div>`).join("")}</div>`; }
+  el.innerHTML = `<div class="bwrap ${e.phase === "밤" ? "bnight" : ""}">
+    <div class="btop"><div><div>${esc(e.cls)} · DAY ${e.day}/${e.days}${e.day === 1 ? " 연습" : ""}</div><div class="btopic">${esc(T.name)} — ${esc(T.claim)}</div></div>${qr}</div>
+    <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
+    <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
+    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}</div>`;
+  boardVerdict(e);
+}
+setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
+function boardVerdict(e) {
+  const v = e && e.verdict; if (!v) return;
+  const k = `${v.day}|${v.seat}`; if (verdictKey === k) return; verdictKey = k;
+  if (verdictKey && store.get("ssi-verdict-seen") === k) return; store.set("ssi-verdict-seen", k);
+  const res = v.hit ? ["마피아가 맞습니다!", "체포!", "vhit"] : v.dodo ? ["사실 도도새였습니다!", "재판대에 올라 도도새 승리!", "vdodo"] : ["마피아가 아닙니다.", "누명이었습니다…", "vmiss"];
+  $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · 광장 재판 판정</div><div class="verdict"><div class="vseat">${v.seat}번은…</div><div class="vres ${res[2]}" id="vres"><b>${res[0]}</b><span>${res[1]}</span></div></div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+  $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; };
+  setTimeout(() => { const x = $("vres"); if (x) x.classList.add("show"); }, 1800);
+}
+// teacher: open board window, secret list
+function openBoard() { const w = window.open(location.origin + location.pathname + "#board", "ssi-board", "popup,width=1280,height=760"); if (!w) location.hash = "#board"; }
+let secretTimer = null;
+function renderSecret() {
+  const P = $("secretPanel"); if (P.hidden) return;
+  const c = C(), R = roles(c), caught = caughtAll(), D = S.dodo;
+  const pend = D && D.offers ? D.offers.find(x => x[2] == null) : null;
+  P.innerHTML = `<div class="secin"><b class="sk">교사 전용 · 전자칠판에는 나오지 않습니다</b>
+    <div><span class="sl">마피아</span>${R.mafia.map(s => `<span class="chip ${caught.includes(s) ? "gone" : "maf"}">${s}번 · ${districtOf(c.n, s) + 1}구역${caught.includes(s) ? " (체포)" : ""}</span>`).join("")}</div>
+    <div><span class="sl">심판</span>${R.judges.map((s, i) => `<span class="chip">${i + 1}구역 ${s}번</span>`).join("")}</div>
+    <div><span class="sl">도도새</span>${D && D.seat ? `<span class="chip dodo">${D.seat}번 (DAY ${D.day}부터)${dodoWon() ? " · 승리" : ""}</span>` : pend ? `<span class="chip">제안 중: ${pend[1]}번 (응답 대기)</span>` : `<span class="muted">아직 없음 (DAY 3 밤부터 제안)</span>`}</div>
+    <button class="sm" id="secretHide">숨기기</button></div>`;
+  $("secretHide").onclick = toggleSecret;
+}
+function toggleSecret() {
+  const P = $("secretPanel"); P.hidden = !P.hidden; $("secretBtn").setAttribute("aria-pressed", String(!P.hidden)); $("secretBtn").classList.toggle("on", !P.hidden);
+  clearTimeout(secretTimer); if (!P.hidden) { renderSecret(); secretTimer = setTimeout(() => { if (!P.hidden) toggleSecret(); }, 20000); }
+}
+$("boardBtn").onclick = openBoard; $("secretBtn").onclick = toggleSecret;

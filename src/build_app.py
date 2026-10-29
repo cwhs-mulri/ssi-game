@@ -21,9 +21,39 @@ html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
 html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
 html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>접속 화면에서 코드와 출석번호를 입력하세요.')
+html = R(html, '<div class="steps-nav" id="stepsNav"', '<div class="secret" id="secretPanel" hidden></div>\n    <div class="steps-nav" id="stepsNav"')
+html = R(html, '<main id="viewTeacher" class="teacher" hidden>', '<main id="viewBoard" class="eboard" hidden></main>\n  <main id="viewTeacher" class="teacher" hidden>')
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
+html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+body.boardmode { padding: 0 !important } body.boardmode header { display: none } body.boardmode .wrap { max-width: none; padding: 0; gap: 0 }
+.eboard { display: block; min-height: 100vh } .bwrap > .bqr { justify-self: center }
+body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boardmode .stage .kicker { font-size: 1.3rem } body.boardmode .stage h2 { font-size: 3.4rem } body.boardmode .stage .item { font-size: 1.6rem } body.boardmode .stage .tipbody { font-size: 2rem }
+.bwrap { position: relative; min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 2.5vh; padding: 4vh 5vw 3vh; background: radial-gradient(120% 90% at 50% 20%, #23263A, #0E0F17 70%) }
+.bwrap.bnight { background: radial-gradient(2px 2px at 18% 22%, #fff8, transparent), radial-gradient(2px 2px at 72% 14%, #fff9, transparent), radial-gradient(2px 2px at 84% 40%, #fff6, transparent), radial-gradient(110% 80% at 50% 25%, #141936 0%, #05060D 70%) }
+.btop { display: flex; gap: 2vw; align-items: center; flex-wrap: wrap; font-size: clamp(16px, 2.2vw, 30px); color: var(--gold); font-weight: 700 }
+.btopic { color: var(--paper); font-weight: 500; opacity: .85; word-break: keep-all }
+.bmain { display: grid; place-items: center; align-content: center; gap: 1vh; text-align: center }
+.bphase { font-family: var(--f-display); font-size: clamp(48px, 9vw, 150px); line-height: 1.05; color: var(--paper) }
+.bnight .bphase { color: #E9EEFF; text-shadow: 0 0 40px #9DB4FF55 }
+.bclock { font-family: var(--f-mono); font-size: clamp(64px, 14vw, 240px); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; color: var(--paper) }
+.bclock small { font-size: .35em; margin-left: .3em; color: var(--muted) } .bclock.low { color: var(--stamp) }
+.bprog { max-width: 1400px; width: 100%; margin: 0 auto } .bprog i { height: 10px }
+.bmsg { text-align: center; font-size: clamp(18px, 2.4vw, 36px); color: #D8D4CC; word-break: keep-all } .bmsg .phone { font-size: .6em; vertical-align: middle }
+.bscore { display: grid; gap: 1vh; max-width: 1100px; width: 100%; margin: 0 auto } .bscore div { display: grid; grid-template-columns: 6em 1fr 3em; gap: 1vw; align-items: center; font-size: clamp(16px, 2vw, 30px) } .bscore i { display: block; height: 2.2vh; min-width: 4px; border-radius: 99px; background: var(--gold) } .bscore b { text-align: right }
+.btop .bqr { margin-left: auto } .bqr { display: flex; gap: 12px; align-items: center; background: #0B0C14cc; border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px } .bqr img { width: clamp(70px, 8vw, 130px); background: #fff; border-radius: 6px }
+.bqr div { display: grid; gap: 2px; font-size: clamp(12px, 1.2vw, 18px); color: var(--muted) } .bqr b { color: var(--paper) } .bqr strong { font-family: var(--f-mono); color: var(--gold); font-size: 1.5em; letter-spacing: .06em }
+.bwait { display: grid; place-items: center; align-content: center; text-align: center; min-height: 70vh; gap: 10px } .bwait h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 6vw, 90px); margin: 0 } .bwait p { color: var(--muted); font-size: clamp(16px, 2vw, 28px) }
+.verdict { display: grid; gap: 3vh; justify-items: center; text-align: center; padding: 4vh 0 }
+.vseat { font-family: var(--f-display); font-size: clamp(48px, 8vw, 130px) }
+.vres { display: grid; gap: 1vh; opacity: 0; transform: scale(.85); transition: all .6s cubic-bezier(.2,.9,.3,1.3) } .vres.show { opacity: 1; transform: none }
+.vres b { font-size: clamp(40px, 6vw, 100px) } .vres span { font-size: clamp(20px, 2.6vw, 40px); color: var(--muted) }
+.vhit b { color: var(--stamp) } .vdodo b { color: #7FD3E0 } .vmiss b { color: var(--paper) }
+.secret { border: 1px dashed var(--stamp); border-radius: 12px; background: #1A0E10; padding: 10px 14px }
+.secin { display: grid; gap: 8px } .secin .sk { color: #FF8A78; font-size: .85rem } .secin .sl { display: inline-block; width: 4em; color: var(--muted); font-size: .85rem }
+.secin .chip { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; margin: 2px; font-size: .9rem } .secin .chip.maf { border-color: var(--stamp); color: #FFB4A8 } .secin .chip.gone { opacity: .5; text-decoration: line-through } .secin .chip.dodo { border-color: #7FD3E0; color: #7FD3E0 }
+.secin button { justify-self: start } #secretBtn.on { background: var(--stamp); color: #fff }
 .stage .dodowarn { animation: dodobob 1.2s ease-in-out infinite } @keyframes dodobob { 50% { transform: translateY(-6px) rotate(-4deg) } } @media (prefers-reduced-motion: reduce) { .stage .dodowarn { animation: none } }
 .stabs { position: relative; display: none; gap: 4px; background: #151722; border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin: 2px 0 10px }
 .stabs button { position: relative; z-index: 1; flex: 1; border: 0; background: none; color: var(--muted); font-weight: 700; font-size: .92rem; min-height: 40px; border-radius: 999px }
@@ -188,6 +218,13 @@ js = R(js, '\nrenderLive();\nbooted = true;', '\nrenderLive();\ngoSlide(store.ge
 # 도도새 주의보 in morning news + phone alert
 js = R(js, '    items.push(["남은 마피아",', '    if (S.dodo && S.dodo.seat && S.dodo.day === d) items.push(["도도새 주의보", "어젯밤 마을에 도도새가 나타났습니다! 도도새는 광장 재판에서 재판대에 오르면 혼자 승리합니다. 수상해 보인다고 무작정 재판에 올리면 도도새의 함정에 빠집니다."]);\n    items.push(["남은 마피아",')
 js = R(js, 'dodo: dodoPending(), out:', 'dodo: dodoPending(), alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out:')
+# board (전자칠판) view, teacher secret list
+js = R(js, 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher" };', 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher", "#board": "viewBoard" };')
+js = R(js, '  window.scrollTo(0, 0);\n}\nwindow.addEventListener("hashchange", route);', '  window.scrollTo(0, 0);\n  document.body.classList.toggle("boardmode", v === "viewBoard");\n  if (v === "viewBoard" && typeof boardStart === "function") boardStart();\n  if (v === "viewStudent" && typeof renderLive === "function" && booted) renderLive();\n}\nwindow.addEventListener("hashchange", route);')
+js = R(js, 'if (c && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);', 'if (c && !$("viewStudent").hidden && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);')
+js = R(js, 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1);', 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1); schedulePublish();')
+js = R(js, 'alert: p[4] === "news"', 'verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news"')
+js = R(js, '  remain = phases[pi][1]; if (typeof stageLive', '  remain = phases[pi][1]; if ($("secretPanel") && !$("secretPanel").hidden) renderSecret(); if (typeof stageLive')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)
