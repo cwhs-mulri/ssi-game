@@ -104,8 +104,9 @@ function renderTally() {
   if (S.day < 2) { el.innerHTML = `<span class="muted">DAY 1은 연습 판이라 휴대폰 밤 행동이 없습니다.</span>`; return; }
   if (!NET.isTeacher()) { el.innerHTML = `<span class="muted">선생님 로그인 후 학생들의 휴대폰 선택이 여기에 실시간으로 모입니다.</span>`; return; }
   const t = tally(), line = (x, name) => `<div><b>${name} ${x.n}/${x.total}명 선택</b> ${Object.keys(x.counts).length ? Object.entries(x.counts).sort((a, b) => b[1] - a[1]).map(([s, v]) => `<span class="chip">${s}번 ${"●".repeat(v)}</span>`).join(" ") : `<span class="muted">아직 없음</span>`}${x.best ? ` → <b>${x.best}번</b>` : ""}</div>`;
-  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 실시간 집계</div>${line(t.m, "마피아")}${line(t.j, "심판")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm gold" id="tallyApply" ${t.m.best || t.j.best ? "" : "disabled"}>집계 결과 적용</button><button class="sm" id="tallyReset">휴대폰 선택 초기화</button></div><div class="dodoline">${dodoLine()}</div><span class="muted" style="font-size:.82rem">밤 단계에서 ▶로 넘어가면 저장 안 된 집계가 자동 적용됩니다.</span></div>`;
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 실시간 집계</div>${line(t.m, "마피아")}${line(t.j, "심판")}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm gold" id="tallyApply" ${t.m.best || t.j.best ? "" : "disabled"}>집계 결과 적용</button><button class="sm" id="tallyReset">휴대폰 선택 초기화</button></div><div class="dodoline">${dodoLine()}${dodoPickUI()}</div><span class="muted" style="font-size:.82rem">밤 단계에서 ▶로 넘어가면 저장 안 된 집계가 자동 적용됩니다.</span></div>`;
   const b = $("tallyApply"); if (b) b.onclick = () => applyTally(true);
+  if ($("dodoPick")) $("dodoPick").onchange = e => setDodoPick(+e.target.value);
   $("tallyReset").onclick = () => { if (confirmReset()) NET.put(`${roomPath(S.code)}/votes/d${S.day}`, null).catch(() => {}); };
 }
 function applyTally(force) {
@@ -240,13 +241,26 @@ function dodoPending() {
   let o = D.offers.find(x => x[0] === S.day);
   if (!o) {
     D.offers.forEach(x => { if (x[2] == null) x[2] = "no"; });
-    const used = D.offers.map(x => x[1]), seat = dodoOrder(C()).find(s => !used.includes(s));
+    const used = D.offers.map(x => x[1]), order = dodoOrder(C());
+    const seat = D.pick && order.includes(D.pick) && !used.includes(D.pick) ? D.pick : order.find(s => !used.includes(s));
     if (!seat) return null;
     o = [S.day, seat, null]; D.offers.push(o); save();
   }
   return o[2] == null ? { day: o[0], seat: o[1] } : null;
 }
 const dodoWon = (st = S) => !!(st.dodo && st.dodo.seat && st.trials.some(t => t[1] === st.dodo.seat && t[0] >= st.dodo.day));
+function dodoPickUI() {
+  const D = dodoS(); if (D.seat || S.ended) return "";
+  const used = D.offers.filter(x => x[2] != null).map(x => x[1]), opts = dodoOrder(C()).filter(s => !used.includes(s)).sort((a, b) => a - b);
+  const pend = D.offers.find(x => x[2] == null), cur = pend ? pend[1] : D.pick;
+  return ` <label class="f dodopick" for="dodoPick">${pend ? "제안 대상 바꾸기" : "다음 제안 대상"}<select id="dodoPick"><option value="">무작위 (기본)</option>${opts.map(s => `<option value="${s}" ${(pend ? D.pick === s : cur === s) ? "selected" : ""}>${s}번</option>`).join("")}</select></label>`;
+}
+function setDodoPick(v) {
+  const D = dodoS(); snap(); D.pick = v || null;
+  const pend = D.offers.find(x => x[2] == null);
+  if (pend) { const used = D.offers.filter(x => x !== pend).map(x => x[1]); pend[1] = D.pick && !used.includes(D.pick) ? D.pick : dodoOrder(C()).find(s => !used.includes(s)); }
+  save(); renderTally(); schedulePublish();
+}
 function dodoLine() {
   const D = S.dodo; if (S.day < 3 && !(D && D.offers.length)) return `<span class="muted">도도새 제안은 DAY 3 밤부터 휴대폰으로 갑니다.</span>`;
   if (!D || !D.offers.length) return `<span class="muted">도도새 제안 준비 중 (진행을 시작하면 전송)</span>`;

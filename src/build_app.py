@@ -56,7 +56,7 @@ css = '''
 .case .dodo-box { border: 1.5px solid #1E8796 !important; color: #0E3E46 !important; background: rgba(42,157,173,.14) !important; font-weight: 700 }
 .stage .dodokick { color: #7FD3E0 } .stage .dodoart { width: 120px; height: 110px } .stage .dodoart svg { width: 100%; height: 100% }
 .stage .dodobody { border-color: #7FD3E0; background: rgba(127,211,224,.08); font-size: 1rem; line-height: 1.6 }
-.dodoline { font-size: .9rem }
+.dodoline { font-size: .9rem; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center } .dodopick { flex-direction: row !important; align-items: center; gap: 8px; font-size: .85rem } .dodopick select { min-width: 130px }
 .tipbtn { width: 100%; min-height: 64px; border-radius: 16px; border: 2px solid #E0533F; background: linear-gradient(180deg, #5A1E19, #3A1411); color: #FFE3DE; font-size: 1.2rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 0 0 4px #E0533F22, 0 8px 24px #E0533F33; animation: tippulse 2.4s ease-in-out infinite }
 .tipbtn.arm { background: #E0533F; color: #fff; animation: none }
 .tipbtn[disabled] { opacity: .55; animation: none }
