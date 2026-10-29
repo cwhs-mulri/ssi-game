@@ -306,7 +306,7 @@ nav { flex-wrap: wrap }
 .sgsteps .kbd { font-family: var(--f-mono); border: 1px solid #5A5040; border-bottom-width: 3px; border-radius: 8px; padding: 4px 10px; color: var(--paper); white-space: nowrap }
 .sgsteps .okc { color: var(--judge, #4CC08F); font-weight: 800 } .sgsteps .noc { color: var(--stamp); font-weight: 800 }
 body.boardmode { padding: 0 !important } body.boardmode header { display: none } body.boardmode .wrap { max-width: none; padding: 0; gap: 0 }
-.eboard { display: block; min-height: 100vh } .bwrap > .bqr { justify-self: center }
+.eboard { display: block; min-height: 100vh } .bdiag { font-size: clamp(14px, 1.4vw, 20px) !important; color: #8E90A6 !important } .bdiag b { color: var(--gold) } .bfoot { position: absolute; left: 2vw; bottom: 1.2vh; font-size: 13px; color: #6C6E82; font-family: var(--f-mono) } .bwrap > .bqr { justify-self: center }
 body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boardmode .stage .kicker { font-size: 1.3rem } body.boardmode .stage h2 { font-size: 3.4rem } body.boardmode .stage .item { font-size: 1.6rem } body.boardmode .stage .tipbody { font-size: 2rem }
 .bwrap { position: relative; min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 2.5vh; padding: 4vh 5vw 3vh; background: radial-gradient(120% 90% at 50% 20%, #23263A, #0E0F17 70%) }
 .bwrap.bnight { background: radial-gradient(2px 2px at 18% 22%, #fff8, transparent), radial-gradient(2px 2px at 72% 14%, #fff9, transparent), radial-gradient(2px 2px at 84% 40%, #fff6, transparent), radial-gradient(110% 80% at 50% 25%, #141936 0%, #05060D 70%) }
@@ -2180,7 +2180,7 @@ function renderSamples() {
 
 // ---------------- routing ----------------
 function route() {
-  const h = location.hash || "#home";
+  const h = (location.hash || "#home").split(/[/?]/)[0];
   const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher", "#board": "viewBoard" };
   const v = views[h] || "viewHome";
   Object.values(views).forEach(id => { $(id).hidden = id !== v; });
@@ -2669,7 +2669,7 @@ function checkAlert(code, v) {
 
 // ---------------- 전자칠판(board) view: public info only ----------------
 let boardSubCode = null, BOARDV = null, verdictKey = null;
-function boardCode() { const cl = store.get("ssi-v3-class") ?? 0, st = store.get(`ssi-v3-${cl}`); return st && parseCode(st.code) ? parseCode(st.code).code : null; }
+function boardCode() { const m = location.hash.match(/^#board[/?](?:c=)?([0-9A-Za-z-]+)/), fromUrl = m && parseCode(m[1]); if (fromUrl) return fromUrl.code; const cl = store.get("ssi-v3-class") ?? 0, st = store.get(`ssi-v3-${cl}`); return st && parseCode(st.code) ? parseCode(st.code).code : null; }
 function boardStart() {
   const code = boardCode();
   if (!code) { $("viewBoard").innerHTML = `<div class="bwait">선생님 화면에서 반과 시즌을 먼저 준비하세요.</div>`; return; }
@@ -2682,7 +2682,7 @@ function renderBoard(e) {
   const c = parseCode(boardSubCode || "");
   if (!c) return;
   const qr = `<div class="bqr"><img src="${QR_SRC}" alt="학생 접속 QR"><div><b>ssi-game.web.app</b><span>시즌 코드</span><strong>${esc(c.code)}</strong></div></div>`;
-  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p></div>${qr}</div>`; return; }
+  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p><p class="bdiag">연결된 시즌 코드 <b>${esc(c.code)}</b> · 노트북 화면의 코드와 같은지, 노트북에서 '선생님 로그인'이 되어 있는지 확인하세요.${liveErr ? "<br>" + esc(liveErr) : ""}</p></div>${qr}</div>`; return; }
   const T = TOPICS[dayTopic(c, e.day)], [msg, ph] = STU[e.phase] || ["선생님 안내를 따르세요.", "down"], [pc, pt] = PHONE[ph], r = liveRemain(e);
   let extra = "";
   if (e.scores && e.scores.length) { const mx = Math.max(1, ...e.scores); extra = `<div class="bscore">${e.scores.map((v, i) => `<div><span>${i + 1}구역</span><i style="width:${Math.round(v / mx * 100)}%"></i><b>${v}</b></div>`).join("")}</div>`; }
@@ -2690,7 +2690,7 @@ function renderBoard(e) {
     <div class="btop"><div><div>${esc(e.cls)} · DAY ${e.day}/${e.days}${e.day === 1 ? " 연습" : ""}</div><div class="btopic">${esc(T.name)} — ${esc(T.claim)}</div></div>${qr}</div>
     <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
     <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
-    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}</div>`;
+    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
   boardVerdict(e);
 }
 setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
@@ -2704,7 +2704,9 @@ function boardVerdict(e) {
   setTimeout(() => { const x = $("vres"); if (x) x.classList.add("show"); }, 1800);
 }
 // teacher: open board window, secret list
-function openBoard() { const w = window.open(location.origin + location.pathname + "#board", "ssi-board", "popup,width=1280,height=760"); if (!w) location.hash = "#board"; }
+let boardWin = null;
+function openBoard() { const url = location.origin + location.pathname + location.search + "#board/" + S.code; boardWin = window.open(url, "ssi-board", "popup,width=1280,height=760"); if (!boardWin) { setSync("err", "팝업이 막혔습니다. 주소창 오른쪽에서 팝업을 허용해 주세요"); } }
+function syncBoardWin() { try { if (boardWin && !boardWin.closed && S && !boardWin.location.hash.endsWith(S.code)) boardWin.location.hash = "#board/" + S.code; } catch {} }
 let secretTimer = null;
 function renderSecret() {
   const P = $("secretPanel"); if (P.hidden) return;
@@ -2780,7 +2782,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1153</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1247</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }
@@ -2864,7 +2866,7 @@ let step = "setup";
 const stepAvail = id => id === "setup" || id === "wrap" || id === "news" || id === "debate" || (id === "night" && S.day > 1) || (id === "trial" && S.day > 1) || (id === "plaza" && isPlazaDay(S.day, S.days));
 function renderBar() {
   const c = C(), R = roles(c), left = R.mafia.length - caughtAll().length;
-  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch();
+  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); syncBoardWin();
   $("classTabs").innerHTML = CLASSES.map((n, i) => `<button role="tab" aria-selected="${i === cls}" class="${i === cls ? "on" : ""}" data-c="${i}">${n}</button>`).join("");
   $("classTabs").querySelectorAll("button").forEach(b => b.onclick = () => { cls = +b.dataset.c; store.set("ssi-v3-class", cls); load(); booted = false; buildPhases(); restoreRun(); booted = true; renderAllT(); });
   $("barCode").textContent = S.code;

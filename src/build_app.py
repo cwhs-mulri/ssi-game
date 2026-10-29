@@ -38,7 +38,7 @@ css = '''
 .sgsteps .kbd { font-family: var(--f-mono); border: 1px solid #5A5040; border-bottom-width: 3px; border-radius: 8px; padding: 4px 10px; color: var(--paper); white-space: nowrap }
 .sgsteps .okc { color: var(--judge, #4CC08F); font-weight: 800 } .sgsteps .noc { color: var(--stamp); font-weight: 800 }
 body.boardmode { padding: 0 !important } body.boardmode header { display: none } body.boardmode .wrap { max-width: none; padding: 0; gap: 0 }
-.eboard { display: block; min-height: 100vh } .bwrap > .bqr { justify-self: center }
+.eboard { display: block; min-height: 100vh } .bdiag { font-size: clamp(14px, 1.4vw, 20px) !important; color: #8E90A6 !important } .bdiag b { color: var(--gold) } .bfoot { position: absolute; left: 2vw; bottom: 1.2vh; font-size: 13px; color: #6C6E82; font-family: var(--f-mono) } .bwrap > .bqr { justify-self: center }
 body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boardmode .stage .kicker { font-size: 1.3rem } body.boardmode .stage h2 { font-size: 3.4rem } body.boardmode .stage .item { font-size: 1.6rem } body.boardmode .stage .tipbody { font-size: 2rem }
 .bwrap { position: relative; min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 2.5vh; padding: 4vh 5vw 3vh; background: radial-gradient(120% 90% at 50% 20%, #23263A, #0E0F17 70%) }
 .bwrap.bnight { background: radial-gradient(2px 2px at 18% 22%, #fff8, transparent), radial-gradient(2px 2px at 72% 14%, #fff9, transparent), radial-gradient(2px 2px at 84% 40%, #fff6, transparent), radial-gradient(110% 80% at 50% 25%, #141936 0%, #05060D 70%) }
@@ -187,7 +187,7 @@ js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카�
           '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); syncBoardWin();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
 js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
@@ -229,6 +229,7 @@ js = R(js, '\nrenderLive();\nbooted = true;', '\nrenderLive();\ngoSlide(store.ge
 js = R(js, '    items.push(["남은 마피아",', '    if (S.dodo && S.dodo.seat && S.dodo.day === d) items.push(["도도새 주의보", "어젯밤 마을에 도도새가 나타났습니다! 도도새는 광장 재판에서 재판대에 오르면 혼자 승리합니다. 수상해 보인다고 무작정 재판에 올리면 도도새의 함정에 빠집니다."]);\n    items.push(["남은 마피아",')
 js = R(js, 'dodo: dodoPending(), out:', 'dodo: dodoPending(), alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out:')
 # board (전자칠판) view, teacher secret list
+js = R(js, '  const h = location.hash || "#home";', '  const h = (location.hash || "#home").split(/[/?]/)[0];')
 js = R(js, 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher" };', 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher", "#board": "viewBoard" };')
 js = R(js, '  window.scrollTo(0, 0);\n}\nwindow.addEventListener("hashchange", route);', '  window.scrollTo(0, 0);\n  document.body.classList.toggle("boardmode", v === "viewBoard");\n  if (v === "viewBoard" && typeof boardStart === "function") boardStart();\n  if (v === "viewStudent" && typeof renderLive === "function" && booted) renderLive();\n}\nwindow.addEventListener("hashchange", route);')
 js = R(js, 'if (c && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);', 'if (c && !$("viewStudent").hidden && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);')

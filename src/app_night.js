@@ -464,7 +464,7 @@ function checkAlert(code, v) {
 
 // ---------------- 전자칠판(board) view: public info only ----------------
 let boardSubCode = null, BOARDV = null, verdictKey = null;
-function boardCode() { const cl = store.get("ssi-v3-class") ?? 0, st = store.get(`ssi-v3-${cl}`); return st && parseCode(st.code) ? parseCode(st.code).code : null; }
+function boardCode() { const m = location.hash.match(/^#board[/?](?:c=)?([0-9A-Za-z-]+)/), fromUrl = m && parseCode(m[1]); if (fromUrl) return fromUrl.code; const cl = store.get("ssi-v3-class") ?? 0, st = store.get(`ssi-v3-${cl}`); return st && parseCode(st.code) ? parseCode(st.code).code : null; }
 function boardStart() {
   const code = boardCode();
   if (!code) { $("viewBoard").innerHTML = `<div class="bwait">선생님 화면에서 반과 시즌을 먼저 준비하세요.</div>`; return; }
@@ -477,7 +477,7 @@ function renderBoard(e) {
   const c = parseCode(boardSubCode || "");
   if (!c) return;
   const qr = `<div class="bqr"><img src="${QR_SRC}" alt="학생 접속 QR"><div><b>ssi-game.web.app</b><span>시즌 코드</span><strong>${esc(c.code)}</strong></div></div>`;
-  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p></div>${qr}</div>`; return; }
+  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p><p class="bdiag">연결된 시즌 코드 <b>${esc(c.code)}</b> · 노트북 화면의 코드와 같은지, 노트북에서 '선생님 로그인'이 되어 있는지 확인하세요.${liveErr ? "<br>" + esc(liveErr) : ""}</p></div>${qr}</div>`; return; }
   const T = TOPICS[dayTopic(c, e.day)], [msg, ph] = STU[e.phase] || ["선생님 안내를 따르세요.", "down"], [pc, pt] = PHONE[ph], r = liveRemain(e);
   let extra = "";
   if (e.scores && e.scores.length) { const mx = Math.max(1, ...e.scores); extra = `<div class="bscore">${e.scores.map((v, i) => `<div><span>${i + 1}구역</span><i style="width:${Math.round(v / mx * 100)}%"></i><b>${v}</b></div>`).join("")}</div>`; }
@@ -485,7 +485,7 @@ function renderBoard(e) {
     <div class="btop"><div><div>${esc(e.cls)} · DAY ${e.day}/${e.days}${e.day === 1 ? " 연습" : ""}</div><div class="btopic">${esc(T.name)} — ${esc(T.claim)}</div></div>${qr}</div>
     <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
     <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
-    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}</div>`;
+    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
   boardVerdict(e);
 }
 setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
@@ -499,7 +499,9 @@ function boardVerdict(e) {
   setTimeout(() => { const x = $("vres"); if (x) x.classList.add("show"); }, 1800);
 }
 // teacher: open board window, secret list
-function openBoard() { const w = window.open(location.origin + location.pathname + "#board", "ssi-board", "popup,width=1280,height=760"); if (!w) location.hash = "#board"; }
+let boardWin = null;
+function openBoard() { const url = location.origin + location.pathname + location.search + "#board/" + S.code; boardWin = window.open(url, "ssi-board", "popup,width=1280,height=760"); if (!boardWin) { setSync("err", "팝업이 막혔습니다. 주소창 오른쪽에서 팝업을 허용해 주세요"); } }
+function syncBoardWin() { try { if (boardWin && !boardWin.closed && S && !boardWin.location.hash.endsWith(S.code)) boardWin.location.hash = "#board/" + S.code; } catch {} }
 let secretTimer = null;
 function renderSecret() {
   const P = $("secretPanel"); if (P.hidden) return;
