@@ -23,10 +23,17 @@ html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<
 html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>접속 화면에서 코드와 출석번호를 입력하세요.')
 html = R(html, '<div class="steps-nav" id="stepsNav"', '<div class="secret" id="secretPanel" hidden></div>\n    <div class="steps-nav" id="stepsNav"')
 html = R(html, '<main id="viewTeacher" class="teacher" hidden>', '<main id="viewBoard" class="eboard" hidden></main>\n  <main id="viewTeacher" class="teacher" hidden>')
+html = R(html, '</nav>', '</nav>\n    <button type="button" class="installbtn" id="installBtn">앱 설치</button>')
+html = R(html, '1분이면 됩니다.</p>', '1분이면 됩니다.</p>\n      <button type="button" class="installlink" id="installBtn2">휴대폰에 앱으로 설치하기</button>')
 html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id="splash" role="alert" hidden></div>\n<div class="stage" id="stage" hidden>')
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.installbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: .9rem; white-space: nowrap }
+.installbtn::before { content: "⤓ " }
+.installlink { margin-top: 10px; width: 100%; min-height: 46px; border: 1px dashed var(--gold); border-radius: 12px; background: #1E1A10; color: var(--gold); font-weight: 700 }
+.stage .appicon img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 24px #0008 }
+header { flex-wrap: wrap }
 .sguide { border: 1.5px solid var(--gold); border-radius: 14px; background: #1E1A10; padding: 12px 14px; display: grid; gap: 10px; margin: 4px 0 6px }
 .sghead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap } .sghead b { color: var(--gold); font-size: 1.05rem } .sghead button { margin-left: auto }
 .sguide.fold .sgsteps { display: none }
@@ -246,7 +253,7 @@ js = R(js, mark, night + '\n' + mark)
 
 script_cfg = '<script src="firebase-config.js"></script>\n'
 i = html.index('</style>') + len('</style>')
-pre = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#13141B">\n'
+pre = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#13141B">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icons/icon-192.png">\n<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="SSI 마피아">\n'
 reset = '<style>html{box-sizing:border-box}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>\n'
 out = pre + reset + head + '\n' + html[:i] + '\n</head>\n<body>' + html[i:] + script_cfg + '<script>\n(() => {\n' + qrlib + '\n' + net + '\n' + data + '\n' + js + '\n</body>\n</html>\n'
 assert '%%' not in out.replace('100%', '').replace('%%LIVE', 'X') or True

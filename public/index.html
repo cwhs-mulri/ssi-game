@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#13141B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SSI 마피아">
 <style>html{box-sizing:border-box}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>SSI 마피아 토론</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -295,6 +302,11 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
+.installbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: .9rem; white-space: nowrap }
+.installbtn::before { content: "⤓ " }
+.installlink { margin-top: 10px; width: 100%; min-height: 46px; border: 1px dashed var(--gold); border-radius: 12px; background: #1E1A10; color: var(--gold); font-weight: 700 }
+.stage .appicon img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 24px #0008 }
+header { flex-wrap: wrap }
 .sguide { border: 1.5px solid var(--gold); border-radius: 14px; background: #1E1A10; padding: 12px 14px; display: grid; gap: 10px; margin: 4px 0 6px }
 .sghead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap } .sghead b { color: var(--gold); font-size: 1.05rem } .sghead button { margin-left: auto }
 .sguide.fold .sgsteps { display: none }
@@ -419,6 +431,7 @@ body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boar
   <header>
     <div class="brand"><h1>SSI 마피아 토론</h1><span>우리 팀 안에 배신자가 있다</span></div>
     <nav aria-label="화면 선택"><a href="#home" id="navH">처음</a><a href="#guide" id="navG">게임 방법</a><a href="#student" id="navS">학생 카드</a><a href="#teacher" id="navT">선생님</a></nav>
+    <button type="button" class="installbtn" id="installBtn">앱 설치</button>
   </header>
 
   <!-- HOME -->
@@ -503,6 +516,7 @@ body.boardmode .stage .inner { max-width: 1500px; font-size: 1.45rem } body.boar
         <p class="err" id="joinErr" role="alert"></p>
       </form>
       <p class="muted" style="font-size:.9rem;margin:4px 0 0">처음이라면 <a href="#guide" style="color:var(--gold)">게임 방법</a>을 먼저 보세요. 1분이면 됩니다.</p>
+      <button type="button" class="installlink" id="installBtn2">휴대폰에 앱으로 설치하기</button>
     </section>
     <section aria-live="polite">
       <div id="cardSlot" class="empty"><div><strong style="font-family:var(--f-display);font-size:1.6rem;font-weight:400;color:var(--paper)">카드가 여기에 나타납니다</strong><br>접속 화면에서 코드와 출석번호를 입력하세요.</div></div>
@@ -2742,6 +2756,31 @@ function bindSetupGuide() {
   const b = $("sgBoard"); if (b) b.onclick = openBoard;
 }
 
+// ---------------- install as an app (PWA) ----------------
+let installEvt = null;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const inApp = () => /KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent);
+function updateInstallUI() { ["installBtn", "installBtn2"].forEach(id => { const b = $(id); if (b) b.hidden = isStandalone(); }); }
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; updateInstallUI(); });
+window.addEventListener("appinstalled", () => { installEvt = null; updateInstallUI(); });
+async function doInstall() {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch {} installEvt = null; updateInstallUI(); return; }
+  const steps = isIOS()
+    ? (inApp() ? [["1", "Safari로 열기", "지금은 카카오톡 같은 앱 안의 브라우저입니다. 오른쪽 아래(또는 위) 메뉴에서 'Safari로 열기'를 누르세요."], ["2", "공유 버튼", "Safari 아래쪽 가운데 □↑ 공유 버튼을 누릅니다."], ["3", "홈 화면에 추가", "목록을 내려 '홈 화면에 추가' → '추가'를 누르면 끝!"]]
+               : [["1", "공유 버튼", "Safari 아래쪽(아이패드는 위쪽) □↑ 공유 버튼을 누릅니다."], ["2", "홈 화면에 추가", "목록을 아래로 내려 '홈 화면에 추가'를 누릅니다."], ["3", "추가", "오른쪽 위 '추가'를 누르면 홈 화면에 SSI 마피아 아이콘이 생깁니다."]])
+    : inApp() ? [["1", "다른 브라우저로 열기", "지금은 앱 안의 브라우저입니다. 메뉴(⋮)에서 'Chrome(다른 브라우저)으로 열기'를 누르세요."], ["2", "앱 설치", "Chrome 메뉴(⋮) → '앱 설치' 또는 '홈 화면에 추가'를 누릅니다."]]
+    : [["1", "브라우저 메뉴 열기", "주소창 오른쪽 ⋮ (또는 설치 아이콘 ⊕)을 누릅니다."], ["2", "앱 설치 / 홈 화면에 추가", "'앱 설치' 또는 '홈 화면에 추가'를 누르면 바탕화면·홈 화면에 아이콘이 생깁니다."]];
+  $("stageInner").innerHTML = `<div class="kicker">INSTALL · 앱으로 설치</div><div class="appicon"><img src="icons/icon-192.png" alt=""></div><h2>홈 화면에 앱으로 설치하기</h2>
+    <div class="items">${steps.map(([n, h, p]) => `<div class="item"><small>${n}단계</small><b>${esc(h)}</b><br>${esc(p)}</div>`).join("")}</div>
+    <p class="muted" style="margin:0">설치하면 주소창 없이 전체 화면으로 열리고, 아이콘을 눌러 바로 들어올 수 있습니다.</p>
+    <button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+  $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; };
+}
+["installBtn", "installBtn2"].forEach(id => { const b = $(id); if (b) b.onclick = doInstall; });
+updateInstallUI();
+if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+
 // ---------------- student ----------------
 fillSelect($("day"), 1, 6, 1, v => `DAY ${v}${v === 1 ? " (연습)" : ""}`);
 function syncSeats() { const c = parseCode($("code").value); const n = c ? c.n : 30; const cur = +$("seat").value || 1; fillSelect($("seat"), 1, n, Math.min(cur, n), v => `${v}번`); }
@@ -2782,7 +2821,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1247</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1445</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }

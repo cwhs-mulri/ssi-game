@@ -536,3 +536,28 @@ function bindSetupGuide() {
   const f = $("sgFold"); if (f) f.onclick = () => { store.set("ssi-guide-fold", !(store.get("ssi-guide-fold") === true)); renderStep(); };
   const b = $("sgBoard"); if (b) b.onclick = openBoard;
 }
+
+// ---------------- install as an app (PWA) ----------------
+let installEvt = null;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const inApp = () => /KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent);
+function updateInstallUI() { ["installBtn", "installBtn2"].forEach(id => { const b = $(id); if (b) b.hidden = isStandalone(); }); }
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; updateInstallUI(); });
+window.addEventListener("appinstalled", () => { installEvt = null; updateInstallUI(); });
+async function doInstall() {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch {} installEvt = null; updateInstallUI(); return; }
+  const steps = isIOS()
+    ? (inApp() ? [["1", "Safari로 열기", "지금은 카카오톡 같은 앱 안의 브라우저입니다. 오른쪽 아래(또는 위) 메뉴에서 'Safari로 열기'를 누르세요."], ["2", "공유 버튼", "Safari 아래쪽 가운데 □↑ 공유 버튼을 누릅니다."], ["3", "홈 화면에 추가", "목록을 내려 '홈 화면에 추가' → '추가'를 누르면 끝!"]]
+               : [["1", "공유 버튼", "Safari 아래쪽(아이패드는 위쪽) □↑ 공유 버튼을 누릅니다."], ["2", "홈 화면에 추가", "목록을 아래로 내려 '홈 화면에 추가'를 누릅니다."], ["3", "추가", "오른쪽 위 '추가'를 누르면 홈 화면에 SSI 마피아 아이콘이 생깁니다."]])
+    : inApp() ? [["1", "다른 브라우저로 열기", "지금은 앱 안의 브라우저입니다. 메뉴(⋮)에서 'Chrome(다른 브라우저)으로 열기'를 누르세요."], ["2", "앱 설치", "Chrome 메뉴(⋮) → '앱 설치' 또는 '홈 화면에 추가'를 누릅니다."]]
+    : [["1", "브라우저 메뉴 열기", "주소창 오른쪽 ⋮ (또는 설치 아이콘 ⊕)을 누릅니다."], ["2", "앱 설치 / 홈 화면에 추가", "'앱 설치' 또는 '홈 화면에 추가'를 누르면 바탕화면·홈 화면에 아이콘이 생깁니다."]];
+  $("stageInner").innerHTML = `<div class="kicker">INSTALL · 앱으로 설치</div><div class="appicon"><img src="icons/icon-192.png" alt=""></div><h2>홈 화면에 앱으로 설치하기</h2>
+    <div class="items">${steps.map(([n, h, p]) => `<div class="item"><small>${n}단계</small><b>${esc(h)}</b><br>${esc(p)}</div>`).join("")}</div>
+    <p class="muted" style="margin:0">설치하면 주소창 없이 전체 화면으로 열리고, 아이콘을 눌러 바로 들어올 수 있습니다.</p>
+    <button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+  $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; };
+}
+["installBtn", "installBtn2"].forEach(id => { const b = $(id); if (b) b.onclick = doInstall; });
+updateInstallUI();
+if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
