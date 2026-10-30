@@ -19,7 +19,7 @@ def R(s, a, b, cnt=1):
 # ---- HTML ----
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
-html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
+html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="voteBox" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
 html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>접속 화면에서 코드와 출석번호를 입력하세요.')
 html = R(html, '<div class="steps-nav" id="stepsNav"', '<div class="secret" id="secretPanel" hidden></div>\n    <div class="steps-nav" id="stepsNav"')
 html = R(html, '<main id="viewTeacher" class="teacher" hidden>', '<main id="viewBoard" class="eboard" hidden></main>\n  <main id="viewTeacher" class="teacher" hidden>')
@@ -29,6 +29,21 @@ html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id=
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.votep { border: 1px solid #5A2520; background: #1A0E10; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px } .votep h3 { margin: 0; color: #FF8A78 } .votep p { margin: 0; font-size: .9rem; color: var(--muted); word-break: keep-all } .votep .nmsg { color: var(--paper); font-weight: 700 }
+.votegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px } .voteb { min-height: 64px; border-radius: 14px; border: 1px solid #5A2520; background: #2A1514; color: var(--paper); font-size: 1.3rem; font-weight: 800; display: grid; place-items: center } .voteb small { font-size: .65rem; color: var(--muted) } .voteb.on { background: var(--stamp); border-color: var(--stamp); color: #fff } .voteb[disabled] { opacity: .5 }
+.bvote { display: grid; gap: 1.2vh; max-width: 1300px; width: 100%; margin: 0 auto } .bvhead { text-align: center; color: #FF8A78; font-weight: 700; font-size: clamp(16px, 2vw, 30px) }
+.bvrow { display: grid; grid-template-columns: 5em 1fr 3em; gap: 1.2vw; align-items: center; font-size: clamp(22px, 3vw, 48px); font-weight: 800 } .bvrow i { display: block; height: 4.2vh; min-width: 6px; border-radius: 99px; background: linear-gradient(90deg, #8A2E24, #E0533F); transition: width .5s ease } .bvrow b { text-align: right }
+.bsfx { position: relative; z-index: 2; margin-right: 10px; border: 1px solid #3A3D52; background: #15161E; color: #A2A3B5; border-radius: 999px; padding: 4px 12px; font-size: 13px } .bsfx.on { color: var(--gold); border-color: var(--gold) }
+.cer { display: grid; gap: 2vh; justify-items: center; text-align: center } .cer p { margin: 0; font-size: 1.3em } .cer h2 { font-size: clamp(3rem, 8vw, 7rem) !important; animation: cerpop .8s cubic-bezier(.2,.9,.3,1.3) } .cer h2.cwin { color: var(--pro) } .cer h2.close { color: var(--stamp) }
+@keyframes cerpop { from { transform: scale(.6); opacity: 0 } }
+.podium { display: flex; justify-content: center; align-items: flex-end; gap: 2vw; min-height: 40vh }
+.pd { display: grid; justify-items: center; gap: 6px; animation: cerup .9s ease both } .pd b { font-size: 1.6em } .pd span { color: var(--gold); font-weight: 800; font-size: 1.3em } .pdb { width: 9em; display: grid; place-items: start center; padding-top: 10px; border-radius: 12px 12px 0 0; font-size: 2.4em; font-weight: 900; color: #13141B }
+.pd.p1 .pdb { height: 30vh; background: var(--gold) } .pd.p2 .pdb { height: 21vh; background: #C9C6D6 } .pd.p3 .pdb { height: 15vh; background: #C98B55 } .pd.p1 { animation-delay: .9s } .pd.p2 { animation-delay: .45s }
+@keyframes cerup { from { transform: translateY(40px); opacity: 0 } }
+.cards3, .awards { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px }
+.mcard, .award { display: grid; gap: 4px; justify-items: center; min-width: 9em; padding: 16px 18px; border-radius: 16px; border: 1.5px solid var(--stamp); background: #2A1514; animation: cerup .7s ease both } .mcard b { font-size: 2em; color: #FFB4A8 } .mcard small, .award small { color: var(--muted) }
+.award { border-color: var(--gold); background: #2A2312 } .award b { color: var(--gold); font-size: 1.3em } .award strong { font-size: 1.6em }
+@media (prefers-reduced-motion: reduce) { .cer h2, .pd, .mcard, .award { animation: none } }
 .layout { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; margin: 6px 0 }
 .lyhead { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center } .lyhead b { font-size: 1.05rem } .lymode { color: var(--gold); font-size: .88rem }
 .lygrid, .lystage { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
@@ -189,7 +204,7 @@ js = R(js, 'return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: pha
 s0 = js.index('let syncOn = store.get("ssi-sync")'); s1 = js.index('const runKey =')
 liveEntry = re.search(r'function liveEntry\(\) \{.*?\n\}\n', js[s0:s1], re.S).group(0)
 js = js[:s0] + 'let pubTimer = null, booted = false;\n' + liveEntry + \
-     'function schedulePublish() { if (!booted) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }\n' + \
+     'function schedulePublish() { if (!booted || $("viewTeacher").hidden) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }\n' + \
      '$("syncBtn").onclick = async () => { try { if (NET.isTeacher()) await NET.logout(); else await NET.teacherLogin(); } catch (e) { setSync("err", "로그인 실패 " + ((e && e.code) || "")); } };\n' + js[s1:]
 # student live helpers
 js = R(js, 'function liveFor(code) { const e = LIVE.classes && LIVE.classes[code]; if (!e || Date.now() - (e.updated || 0) > 6 * 3600e3) return null; return e; }',
@@ -202,13 +217,13 @@ js = R(js, '''  const e = c && liveFor(c.code);
   const strip = $("liveStrip");''')
 js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
 js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
-          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge();\n}')
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge(); renderVote();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); syncBoardWin();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); teacherTVWatch(); syncBoardWin();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
-js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; tvKey = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
 # teacher fullscreen news mirrored to students
@@ -249,7 +264,7 @@ js = R(js, 'dodo: dodoPending(), out:', 'dodo: dodoPending(), alert: p[4] === "n
 # board (전자칠판) view, teacher secret list
 js = R(js, '  const h = location.hash || "#home";', '  const h = (location.hash || "#home").split(/[/?]/)[0];')
 js = R(js, 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher" };', 'const views = { "#home": "viewHome", "#guide": "viewGuide", "#student": "viewStudent", "#teacher": "viewTeacher", "#board": "viewBoard" };')
-js = R(js, '  window.scrollTo(0, 0);\n}\nwindow.addEventListener("hashchange", route);', '  window.scrollTo(0, 0);\n  document.body.classList.toggle("boardmode", v === "viewBoard");\n  if (v === "viewBoard" && typeof boardStart === "function") boardStart();\n  if (v === "viewStudent" && typeof renderLive === "function" && booted) renderLive();\n}\nwindow.addEventListener("hashchange", route);')
+js = R(js, '  window.scrollTo(0, 0);\n}\nwindow.addEventListener("hashchange", route);', '  window.scrollTo(0, 0);\n  document.body.classList.toggle("boardmode", v === "viewBoard");\n  if (v === "viewBoard" && typeof boardStart === "function") boardStart();\n  if (v === "viewStudent" && typeof renderLive === "function" && booted) renderLive();\n  if (v === "viewTeacher" && booted) { renderBar(); schedulePublish(); }\n}\nwindow.addEventListener("hashchange", route);')
 js = R(js, 'if (c && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);', 'if (c && !$("viewStudent").hidden && store.get("ssi-last4") && store.get("ssi-last4").code === c.code) watchLive(c.code);')
 js = R(js, 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1);', 'S.trials.push([d, s, hit, hit && nd >= 0 ? nd : null]); save(); chime(hit ? 3 : 1); schedulePublish();')
 js = R(js, 'alert: p[4] === "news"', 'verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news"')
@@ -271,6 +286,13 @@ js = R(js, 'stage: stageLive, tipUsed:', 'stage: stageLive, layout: S.layout || 
 js = R(js, '${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}', '${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}${x.spoke ? (() => { const miss = debaters.filter(s => !x.spoke.includes(s)); return `<br><span class="${miss.length ? "warn" : "muted"}" style="font-size:.82rem">발언 ${debaters.length - miss.length}/${debaters.length}${miss.length ? ` · 아직: ${miss.join(", ")}번` : " · 모두 발언"}</span>`; })() : ""}')
 # card waits for live layout
 js = R(js, 'function showCard(open) {\n  const c = parseCode($("code").value); if (!c) return;', 'function showCard(open) {\n  const c = parseCode($("code").value); if (!c) return;\n  if (NET.mode !== "local" && !(c.code in NETLIVE)) { cardWait = true; $("cardSlot").className = "empty"; $("cardSlot").innerHTML = `<div><strong style="font-size:1.3rem">선생님 화면과 연결 중…</strong><br>잠시 후 카드가 나타납니다. 선생님이 로그인하고 진행을 시작해야 합니다.</div>`; return; }')
+# immersion: trial vote, ceremony
+js = R(js, '<div class="result" id="trialResult">', '<div id="voteCtl" class="tally"></div>\n      <div class="result" id="trialResult">')
+js = R(js, '    P.querySelectorAll("select[data-n]").forEach(s => s.onchange = () => { snap(); (S.noms[d] = S.noms[d] || [])[+s.dataset.n] = +s.value || null; save(); renderStep(); });', '    renderVoteCtl(); teacherTVWatch();\n    P.querySelectorAll("select[data-n]").forEach(s => s.onchange = () => { snap(); (S.noms[d] = S.noms[d] || [])[+s.dataset.n] = +s.value || null; save(); renderStep(); });')
+js = R(js, '<span id="endArea"></span></div>', '<span id="endArea"></span></div><div id="cerCtl" style="flex-basis:100%"></div>')
+js = R(js, 'function endIdle() {\n  const area = $("endArea"); if (!area) return;', 'function endIdle() {\n  renderCerCtl();\n  const area = $("endArea"); if (!area) return;')
+js = R(js, 'stage: stageLive, layout:', 'vote: p[4] === "trial" && tvState() ? { day: S.day, cands: tvState().cands, open: tvState().open, counts: tvState().counts || {}, n: tvState().n || 0, at: tvState().at } : null, stage: stageLive, layout:')
+js = R(js, '"광장 재판": ["의심스러운 사람을 지명하고, 신호에 맞춰 동시에 가리키세요.", "down"]', '"광장 재판": ["지명된 사람의 해명을 듣고, 투표가 열리면 휴대폰으로 익명 투표하세요.", "card"]')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

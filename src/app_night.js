@@ -80,7 +80,7 @@ function renderNight() {
 // ---------------- teacher: live push, vote tally ----------------
 let votesSub = null, votesKey = null, VOTES = {}, lastBoard = "";
 function teacherWatch() {
-  const key = NET.isTeacher() && S ? `${S.code}|${S.day}` : null;
+  const key = NET.isTeacher() && tActive() && S ? `${S.code}|${S.day}` : null;
   if (key === votesKey) return;
   votesKey = key; if (votesSub) { votesSub(); votesSub = null; } VOTES = {}; lastBoard = "";
   if (!key) return;
@@ -184,13 +184,13 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const st = v && v.stage;
-  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout")) {
+  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout" || st.k === "cer")) {
     const sk = st.at + (st.why ? "|w" : "");
     if (stuStageDismissed === st.at || stuStageAt === sk) return;
     const fresh = stuStageAt === null || String(stuStageAt).split("|")[0] !== String(st.at);
     stuStageAt = sk; hideSplash();
     if (st.k === "tip" && fresh) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch {} }
-    $("stageInner").innerHTML = st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "cer" ? ceremonyHTML(st) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -224,7 +224,7 @@ function renderTipBox() {
 // teacher: watch tip requests and pop the tip automatically
 let tipSub = null, tipKey = null;
 function teacherTipWatch() {
-  const key = NET.isTeacher() && S ? S.code : null;
+  const key = NET.isTeacher() && tActive() && S ? S.code : null;
   if (key === tipKey) return;
   tipKey = key; if (tipSub) { tipSub(); tipSub = null; }
   if (!key) return;
@@ -276,7 +276,7 @@ function dodoLine() {
 // teacher: watch answers
 let dodoSub = null, dodoKey = null;
 function teacherDodoWatch() {
-  const key = NET.isTeacher() && S ? S.code : null;
+  const key = NET.isTeacher() && tActive() && S ? S.code : null;
   if (key === dodoKey) return;
   dodoKey = key; if (dodoSub) { dodoSub(); dodoSub = null; }
   if (!key) return;
@@ -382,7 +382,7 @@ function renderJudge() {
 // teacher: receive judge reports
 let jSub = null, pSub = null, jKey2 = null, PLAZA_REP = {};
 function teacherJudgeWatch() {
-  const key = NET.isTeacher() && S ? `${S.code}|${S.day}` : null;
+  const key = NET.isTeacher() && tActive() && S ? `${S.code}|${S.day}` : null;
   if (key === jKey2) return;
   jKey2 = key; if (jSub) { jSub(); jSub = null; } if (pSub) { pSub(); pSub = null; } PLAZA_REP = {};
   if (!key) return;
@@ -423,7 +423,7 @@ const swipe = (() => {
   const mk = k => { const d = document.createElement("div"); d.className = "slide"; d.dataset.k = k; wrap.appendChild(d); return d; };
   const sNow = mk("now"), sCard = mk("card"), sJoin = mk("join");
   const joinSec = $("joinForm").closest("section"), cardSec = $("cardSlot").closest("section"), stu = view.querySelector(".student");
-  ["liveBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
+  ["liveBox", "voteBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
   const toCard = document.createElement("button"); toCard.type = "button"; toCard.className = "slidelink"; toCard.textContent = "내 카드 보기 →"; toCard.onclick = () => goSlide("card"); sNow.appendChild(toCard);
   sCard.appendChild(cardSec); sJoin.appendChild(joinSec);
   const hint = document.createElement("p"); hint.className = "muted swipehint"; hint.textContent = "← 옆으로 넘겨서 다른 화면을 볼 수 있어요 →";
@@ -448,7 +448,7 @@ swipe.wrap.addEventListener("scroll", () => { clearTimeout(swT); swT = setTimeou
 try { const ro = new ResizeObserver(() => fitSlide()); swipe.slides.forEach(s => ro.observe(s)); } catch {}
 window.addEventListener("resize", () => { markTabs(); fitSlide(); if (narrow()) swipe.wrap.scrollTo({ left: slideCur * swipe.wrap.clientWidth }); });
 // new actions appear -> badge the 지금 tab
-try { const mo = new MutationObserver(() => { if (["nightBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
+try { const mo = new MutationObserver(() => { if (["nightBox", "voteBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "voteBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
 
 // ---------------- phone alert: 도도새 주의보 (morning after a 도도새 appears) ----------------
 let alertTimer = null;
@@ -484,7 +484,7 @@ function renderBoard(e) {
   const c = parseCode(boardSubCode || "");
   if (!c) return;
   const qr = `<div class="bqr"><img src="${QR_SRC}" alt="학생 접속 QR"><div><b>ssi-game.web.app</b><span>시즌 코드</span><strong>${esc(c.code)}</strong></div></div>`;
-  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p><p class="bdiag">연결된 시즌 코드 <b>${esc(c.code)}</b> · 노트북 화면의 코드와 같은지, 노트북에서 '선생님 로그인'이 되어 있는지 확인하세요.${liveErr ? "<br>" + esc(liveErr) : ""}</p></div>${qr}</div>`; return; }
+  if (!e) { el.innerHTML = `<div class="bwrap"><div class="bfoot">${sfxButton()}</div><div class="bwait"><h2>SSI 마피아 토론</h2><p>선생님이 진행을 시작하면 이 화면에 단계와 시간이 크게 표시됩니다.</p><p class="bdiag">연결된 시즌 코드 <b>${esc(c.code)}</b> · 노트북 화면의 코드와 같은지, 노트북에서 '선생님 로그인'이 되어 있는지 확인하세요.${liveErr ? "<br>" + esc(liveErr) : ""}</p></div>${qr}</div>`; return; }
   const T = TOPICS[dayTopic(c, e.day)], [msg, ph] = STU[e.phase] || ["선생님 안내를 따르세요.", "down"], [pc, pt] = PHONE[ph], r = liveRemain(e);
   let extra = "";
   if (e.scores && e.scores.length) { const mx = Math.max(1, ...e.scores); extra = `<div class="bscore">${e.scores.map((v, i) => `<div><span>${i + 1}구역</span><i style="width:${Math.round(v / mx * 100)}%"></i><b>${v}</b></div>`).join("")}</div>`; }
@@ -492,8 +492,8 @@ function renderBoard(e) {
     <div class="btop"><div><div>${esc(e.cls)} · DAY ${e.day}/${e.days}${e.day === 1 ? " 연습" : ""}</div><div class="btopic">${esc(T.name)} — ${esc(T.claim)}</div></div>${qr}</div>
     <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
     <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
-    <div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
-  boardVerdict(e);
+    ${boardVoteHTML(e)}<div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${sfxButton()} ${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
+  boardVerdict(e); boardSounds(e);
 }
 setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
 function boardVerdict(e) {
@@ -503,7 +503,7 @@ function boardVerdict(e) {
   const res = v.hit ? ["마피아가 맞습니다!", "체포!", "vhit"] : v.dodo ? ["사실 도도새였습니다!", "재판대에 올라 도도새 승리!", "vdodo"] : ["마피아가 아닙니다.", "누명이었습니다…", "vmiss"];
   $("stageInner").innerHTML = `<div class="kicker">DAY ${v.day} · 광장 재판 판정</div><div class="verdict"><div class="vseat">${v.seat}번은…</div><div class="vres ${res[2]}" id="vres"><b>${res[0]}</b><span>${res[1]}</span></div></div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
   $("stage").hidden = false; $("stageClose").onclick = () => { $("stage").hidden = true; };
-  setTimeout(() => { const x = $("vres"); if (x) x.classList.add("show"); }, 1800);
+  SFX.play("roll"); setTimeout(() => { const x = $("vres"); if (x) x.classList.add("show"); SFX.play(v.hit ? "hit" : "soft"); }, 1800);
 }
 // teacher: open board window, secret list
 let boardWin = null;
@@ -600,3 +600,139 @@ function layoutStage(D, J, mine) {
     <div class="lystage">${D.map((m, di) => `<div class="lycol ${mine && m.includes(mine) ? "me" : ""}"><h4>${di + 1}구역</h4><div class="lyseats">${m.map(s => `<span class="lyseat ${s === mine ? "on" : ""} ${(J || []).includes(s) ? "jd" : ""}">${s}${(J || []).includes(s) ? "<small>심판</small>" : ""}</span>`).join("")}</div></div>`).join("")}</div>
     <p class="muted" style="margin:0">같은 구역끼리 모여 앉으세요. 심판은 구역마다 1명입니다.</p>`;
 }
+
+// ================= 몰입 기능 1: 휴대폰 익명 재판 투표 =================
+let tvSub = null, tvKey = null;
+function tvState() { return S.tvote && S.tvote.day === S.day ? S.tvote : null; }
+function teacherTVWatch() {
+  const tv = tvState(), key = NET.isTeacher() && tActive() && tv ? `${S.code}|${S.day}` : null;
+  if (key === tvKey) return;
+  tvKey = key; if (tvSub) { tvSub(); tvSub = null; }
+  if (!key) return;
+  const code = S.code, d = S.day;
+  tvSub = NET.watch(`${roomPath(code)}/votes/t${d}`, v => {
+    const tv2 = tvState(); if (!tv2 || S.code !== code || !tv2.open) return;
+    const counts = {}, picks = {}; let n = 0;
+    Object.entries(v || {}).forEach(([k, x]) => { const s = +k.slice(1); if (x && tv2.cands.includes(+x.target) && +x.target !== s) { counts["s" + x.target] = (counts["s" + x.target] || 0) + 1; picks[s] = +x.target; n++; } });
+    tv2.counts = counts; tv2.picks = picks; tv2.n = n; save(); renderVoteCtl(); schedulePublish();
+  });
+}
+function tvLeader(tv) { const e = Object.entries(tv.counts || {}).sort((a, b) => b[1] - a[1]); return e.length && (e.length < 2 || e[0][1] > e[1][1]) ? +e[0][0].slice(1) : null; }
+function renderVoteCtl() {
+  const el = $("voteCtl"); if (!el) return;
+  const d = S.day, noms = S.noms[d] || [], caught = caughtAll(), pool = [...new Set(noms.filter(Boolean))].filter(s => !caught.includes(s));
+  const judged = S.trials.some(t => t[0] === d), tv = tvState();
+  if (S.ended || judged) { el.innerHTML = tv ? `<span class="muted">휴대폰 투표 결과: ${Object.entries(tv.counts || {}).map(([k, v]) => `${k.slice(1)}번 ${v}표`).join(" · ") || "없음"}</span>` : ""; return; }
+  if (!tv) { el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 익명 투표</div><span class="muted">지명된 사람(${pool.length ? pool.map(s => s + "번").join(", ") : "아직 없음"})이 해명한 뒤 투표를 여세요. 누가 누구를 골랐는지는 아무에게도 보이지 않고, 칠판에는 득표 막대만 나옵니다.</span><button class="gold" id="tvOpen" ${pool.length >= 2 ? "" : "disabled"}>휴대폰 투표 시작</button>${pool.length < 2 ? `<span class="muted" style="font-size:.82rem">지명자가 2명 이상이어야 합니다. 손가락 투표로 진행하려면 아래에서 바로 판정하세요.</span>` : ""}</div>`; $("tvOpen") && ($("tvOpen").onclick = () => { snap(); S.tvote = { day: d, cands: pool.slice().sort((a, b) => a - b), open: true, counts: {}, n: 0, at: NET.now() }; save(); teacherTVWatch(); renderVoteCtl(); schedulePublish(); }); return; }
+  const lead = tvLeader(tv);
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">휴대폰 익명 투표 ${tv.open ? "진행 중" : "마감"} · ${tv.n || 0}/${C().n}명 투표</div>
+    <div>${tv.cands.map(s => `<span class="chip">${s}번 ${(tv.counts || {})["s" + s] || 0}표</span>`).join(" ")}${lead ? ` → <b>${lead}번</b>` : tv.n ? ` → <b class="warn">동점</b>` : ""}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${tv.open ? `<button class="gold" id="tvClose">투표 마감</button>` : `<button class="sm" id="tvReopen">다시 열기</button>`}<button class="sm" id="tvCancel">투표 취소</button></div>
+    ${!tv.open ? `<span class="muted" style="font-size:.82rem">${lead ? `1위 ${lead}번이 아래 '전체 투표 1위'에 들어갔습니다. '판정 발표'를 누르세요.` : "동점입니다. 동점자끼리 한 번 더 해명하고 다시 열거나, 아래에서 직접 고르세요."}</span>` : ""}</div>`;
+  if ($("tvClose")) $("tvClose").onclick = () => { snap(); tv.open = false; (S.tvhist = S.tvhist || {})[d] = Object.assign({}, tv.picks || {}); save(); const L = tvLeader(tv); if (L && $("tVote")) $("tVote").value = L; renderVoteCtl(); schedulePublish(); };
+  if ($("tvReopen")) $("tvReopen").onclick = () => { tv.open = true; save(); renderVoteCtl(); schedulePublish(); };
+  if ($("tvCancel")) $("tvCancel").onclick = () => { snap(); S.tvote = null; save(); teacherTVWatch(); renderVoteCtl(); schedulePublish(); };
+  if (!tv.open && lead && $("tVote")) $("tVote").value = lead;
+}
+// student phone ballot
+let voteMsg = "", voteSeen = null;
+function renderVote() {
+  const box = $("voteBox"); if (!box) return;
+  const c = parseCode($("code").value), last = store.get("ssi-last4");
+  const e = c && last && last.code === c.code ? liveFor(c.code) : null, seat = +$("seat").value;
+  const v = e && e.phase === "광장 재판" && e.vote;
+  if (!v) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const k = `ssi-tv-${c.code}-${v.day}-${seat}`, mine = ss.get(k);
+  if (v.open && voteSeen !== v.at) { voteSeen = v.at; try { if (navigator.vibrate) navigator.vibrate(150); } catch {} goSlide("now", false); }
+  box.innerHTML = `<div class="votep"><h3>광장 재판 · 익명 투표 ${v.open ? "" : "(마감)"}</h3><p>${v.open ? "마피아라고 생각하는 사람을 누르세요. 누가 누구를 골랐는지는 아무도 볼 수 없습니다. 마감 전까지 바꿀 수 있어요." : "투표가 마감되었습니다. 칠판의 판정을 기다리세요."}</p>
+    <div class="votegrid">${v.cands.map(s => `<button type="button" class="voteb ${mine === s ? "on" : ""}" data-v="${s}" ${!v.open || s === seat ? "disabled" : ""}>${s}번${s === seat ? "<small>나</small>" : ""}</button>`).join("")}</div>
+    <p class="nmsg">${esc(voteMsg || (mine ? `${mine}번에 투표했습니다` : v.open ? "아직 투표하지 않았습니다" : ""))}</p></div>`;
+  box.querySelectorAll(".voteb").forEach(b => b.onclick = async () => {
+    const s = +b.dataset.v; voteMsg = "보내는 중…"; renderVote();
+    try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/t${v.day}/s${seat}`, { uid: NET.user.uid, k: "m", target: s, t: NET.stamp() }); ss.set(k, s); voteMsg = ""; }
+    catch (err) { voteMsg = /PERMISSION/i.test((err && (err.code || err.message)) || "") ? "이 번호는 다른 휴대폰에서 이미 투표했습니다." : "전송 실패. 다시 눌러 주세요."; }
+    renderVote();
+  });
+}
+function boardVoteHTML(e) {
+  const v = e.vote; if (!v || e.phase !== "광장 재판") return "";
+  const counts = v.counts || {}, mx = Math.max(1, ...v.cands.map(s => counts["s" + s] || 0));
+  return `<div class="bvote"><div class="bvhead">${v.open ? "익명 투표 진행 중" : "투표 마감"} · ${v.n || 0}명 투표</div>${v.cands.map(s => { const n = counts["s" + s] || 0; return `<div class="bvrow"><span>${s}번</span><i style="width:${Math.round(n / mx * 100)}%"></i><b>${n}</b></div>`; }).join("")}</div>`;
+}
+
+// ================= 몰입 기능 2: 시즌 시상식 =================
+function ceremonyData() {
+  const c = C(), R = roles(c), { totals, betray, allCaught } = compute(), caught = caughtAll(), D = districtsFor(c);
+  const ranks = totals.map((v, di) => ({ di, v })).sort((a, b) => b.v - a.v);
+  const mvp = {}; Object.values(S.judge || {}).forEach(dj => Object.values(dj || {}).forEach(x => { if (x && x.mvp) mvp[x.mvp] = (mvp[x.mvp] || 0) + 1; }));
+  const aud = {}; Object.values(S.plaza || {}).forEach(p => { if (p && p.aud) aud[p.aud] = (aud[p.aud] || 0) + 1; });
+  const det = {}; Object.entries(S.tvhist || {}).forEach(([dd, picks]) => { const t = S.trials.find(x => x[0] === +dd); if (t && t[2]) Object.entries(picks).forEach(([voter, tg]) => { if (+tg === t[1]) det[voter] = (det[voter] || 0) + 1; }); });
+  const top = m => { const e = Object.entries(m); if (!e.length) return null; const mx = Math.max(...e.map(x => x[1])); return { seats: e.filter(x => x[1] === mx).map(x => +x[0]).sort((a, b) => a - b), n: mx }; };
+  const awards = [];
+  const a1 = top(mvp); if (a1) awards.push(["명연설가", "MVP를 가장 많이 받은 사람", a1.seats, `MVP ${a1.n}회`]);
+  const a2 = top(det); if (a2) awards.push(["명탐정", "재판 투표로 마피아를 가장 많이 맞힌 사람", a2.seats, `${a2.n}번 적중`]);
+  const a3 = top(betray); if (a3) awards.push(["연기왕", "배신에 가장 많이 성공한 마피아", a3.seats, `배신 성공 ${a3.n}회`]);
+  const a4 = top(aud); if (a4) awards.push(["광장의 스타", "청중상을 받은 사람", a4.seats, `${a4.n}회`]);
+  const dodo = S.dodo && S.dodo.seat ? { seat: S.dodo.seat, won: dodoWon() } : null;
+  return { cls: CLASSES[cls], allCaught, ranks, districts: D.map(m => m.length), mafia: R.mafia.map(s => ({ s, di: districtOfC(c, s), caught: caught.includes(s), b: betray[s] || 0 })), dodo, awards };
+}
+const CER_STEPS = ["intro", "rank", "mafia", "dodo", "award", "bye"];
+function cerSteps(data) { return CER_STEPS.filter(k => k !== "dodo" || data.dodo).filter(k => k !== "award" || data.awards.length); }
+function ceremonyHTML(st) {
+  const d = st.data, k = cerSteps(d)[st.step] || "intro";
+  if (k === "intro") return `<div class="kicker">SEASON FINAL · 시즌 결과 발표</div><div class="cer cer-intro"><p>${esc(d.cls)} 마을의 시즌이 끝났습니다</p><h2 class="${d.allCaught ? "cwin" : "close"}">${d.allCaught ? "시민 승리!" : "마피아 승리!"}</h2><p>${d.allCaught ? "마피아를 모두 찾아냈습니다." : "끝까지 살아남은 마피아가 있습니다."}</p></div>`;
+  if (k === "rank") { const r = d.ranks, pod = [r[1], r[0], r[2]].filter(Boolean); return `<div class="kicker">구역 순위</div><div class="podium">${pod.map(x => { const place = r.indexOf(x) + 1; return `<div class="pd p${place}"><b>${x.di + 1}구역</b><span>${x.v}점</span><div class="pdb">${place}</div></div>`; }).join("")}</div>${r.length > 3 ? `<p class="muted" style="text-align:center;margin:0">${r.slice(3).map((x, i) => `${i + 4}위 ${x.di + 1}구역 ${x.v}점`).join(" · ")}</p>` : ""}`; }
+  if (k === "mafia") return `<div class="kicker">마피아 공개</div><h2>우리 마을의 배신자들</h2><div class="cards3">${d.mafia.map((m, i) => `<div class="mcard" style="animation-delay:${i * 0.6}s"><b>${m.s}번</b><span>${m.di + 1}구역</span><small>${m.caught ? "체포됨" : "끝까지 생존"} · 배신 성공 ${m.b}회</small></div>`).join("")}</div><p class="muted" style="margin:0">연기 정말 잘했습니다. 큰 박수!</p>`;
+  if (k === "dodo") return `<div class="kicker dodokick">특수 직업</div><div class="dodoart">${DODO_SVG}</div><h2>도도새는 ${d.dodo.seat}번이었습니다</h2><p style="margin:0;font-size:1.3em">${d.dodo.won ? "재판대에 오르는 데 성공해 도도새 승리!" : "아쉽게도 재판대에 오르지 못했습니다."}</p>`;
+  if (k === "award") return `<div class="kicker">개인 칭호</div><h2>오늘의 주인공들</h2><div class="awards">${d.awards.map(([t, desc, seats, note], i) => `<div class="award" style="animation-delay:${i * 0.5}s"><b>${t}</b><strong>${seats.map(s => s + "번").join(", ")}</strong><small>${desc} · ${note}</small></div>`).join("")}</div>`;
+  return `<div class="kicker">역할 내려놓기</div><h2>게임 속 거짓말과 지목은<br>게임 안에서만</h2><p style="margin:0;font-size:1.25em">마피아였던 친구들, 의심받았던 친구들 모두 수고했어요.<br>서로에게 박수를 보내며 역할을 내려놓습니다.</p>`;
+}
+function renderCerCtl() {
+  const el = $("cerCtl"); if (!el) return;
+  if (!S.ended) { el.innerHTML = ""; return; }
+  const on = stageLive && stageLive.k === "cer", n = on ? cerSteps(stageLive.data).length : 0;
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">시즌 시상식 (전자칠판·휴대폰)</div>${on ? `<span>${stageLive.step + 1}/${n} 단계</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm" id="cerPrev" ${stageLive.step ? "" : "disabled"}>◀ 이전</button><button class="gold" id="cerNext">${stageLive.step + 1 < n ? "다음 ▶" : "시상식 끝내기"}</button></div>` : `<span class="muted">결과 발표 → 구역 순위 → 마피아 공개 → 도도새 → 개인 칭호 → 역할 내려놓기 순서로, 선생님이 넘길 때마다 칠판과 휴대폰에 크게 나옵니다.</span><button class="gold" id="cerStart">시상식 시작</button>`}</div>`;
+  if ($("cerStart")) $("cerStart").onclick = () => { stageLive = { k: "cer", step: 0, data: ceremonyData(), at: NET.now() }; schedulePublish(); renderCerCtl(); };
+  if ($("cerNext")) $("cerNext").onclick = () => { if (stageLive.step + 1 >= n) { stageLive = null; } else stageLive = Object.assign({}, stageLive, { step: stageLive.step + 1, at: NET.now() }); schedulePublish(); renderCerCtl(); };
+  if ($("cerPrev")) $("cerPrev").onclick = () => { stageLive = Object.assign({}, stageLive, { step: stageLive.step - 1, at: NET.now() }); schedulePublish(); renderCerCtl(); };
+}
+
+// ================= 몰입 기능 3: 전자칠판 효과음 =================
+const SFX = (() => {
+  let ac = null, on = false, amb = null;
+  const ctx = () => { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); return ac; };
+  const tone = (f, t0, dur, type = "sine", vol = .2) => { const a = ctx(), o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(.0001, a.currentTime + t0); g.gain.exponentialRampToValueAtTime(vol, a.currentTime + t0 + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t0 + dur); o.connect(g).connect(a.destination); o.start(a.currentTime + t0); o.stop(a.currentTime + t0 + dur + .05); };
+  const noise = (t0, dur, vol = .15, hp = 1000) => { const a = ctx(), len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = buf; f.type = "highpass"; f.frequency.value = hp; g.gain.setValueAtTime(vol, a.currentTime + t0); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t0 + dur); s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime + t0); };
+  const P = {
+    night: () => { [220, 165, 131].forEach((f, i) => tone(f, i * .35, 1.6, "sine", .12)); },
+    dawn: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .18, .9, "triangle", .14)); },
+    phase: () => { tone(660, 0, .25, "sine", .12); tone(880, .15, .35, "sine", .12); },
+    tip: () => { [0, .3, .6].forEach(t => { tone(880, t, .2, "square", .07); tone(660, t + .12, .15, "square", .06); }); },
+    roll: () => { for (let i = 0; i < 26; i++) noise(i * .065, .06, .05 + i * .006, 400); },
+    hit: () => { tone(110, 0, .9, "sawtooth", .16); noise(0, .9, .2, 3000); },
+    soft: () => { tone(392, 0, .5, "triangle", .12); tone(330, .25, .7, "triangle", .1); },
+    fanfare: () => { [[523, 0], [659, .14], [784, .28], [1047, .46], [784, .66], [1047, .8]].forEach(([f, t]) => tone(f, t, .35, "square", .07)); },
+    vote: () => tone(1200, 0, .08, "sine", .06)
+  };
+  function ambience(start) {
+    if (!on) return; const a = ctx();
+    if (start && !amb) { amb = setInterval(() => { if (Math.random() < .7) { const f = 4200 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f, i * .06, .04, "sine", .025); } }, 900); }
+    if (!start && amb) { clearInterval(amb); amb = null; }
+  }
+  return { play(k) { if (!on) return; try { ctx().resume(); P[k] && P[k](); } catch {} }, ambience, enable(v) { on = v; try { if (v) ctx().resume(); } catch {} if (!v) ambience(false); store.set("ssi-sfx", v); }, get on() { return on; } };
+})();
+let sfxPhase = null, sfxStage = null;
+function boardSounds(e) {
+  if ($("viewBoard").hidden || !e) return;
+  const pk = `${e.day}|${e.pi}`;
+  if (sfxPhase !== null && pk !== sfxPhase) SFX.play(e.phase === "밤" ? "night" : e.phase === "아침 뉴스" ? "dawn" : "phase");
+  sfxPhase = pk; SFX.ambience(e.phase === "밤");
+  const st = e.stage, sk = st ? `${st.k}|${st.at}` : null;
+  if (sk && sk !== sfxStage && sfxStage !== null) { if (st.k === "tip") SFX.play("tip"); else if (st.k === "cer") SFX.play(st.step === 0 || cerSteps(st.data)[st.step] === "award" ? "fanfare" : "phase"); }
+  sfxStage = sk || (sfxStage === null ? "" : sfxStage);
+}
+function sfxButton() { return `<button type="button" class="bsfx ${SFX.on ? "on" : ""}" id="bSfx">${SFX.on ? "소리 켜짐" : "소리 켜기"}</button>`; }
+document.addEventListener("click", ev => { if (ev.target && ev.target.id === "bSfx") { SFX.enable(!SFX.on); ev.target.className = "bsfx" + (SFX.on ? " on" : ""); ev.target.textContent = SFX.on ? "소리 켜짐" : "소리 켜기"; if (SFX.on) SFX.play("phase"); } });
+
+function tActive() { return !$("viewTeacher").hidden; }
