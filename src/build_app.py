@@ -29,6 +29,7 @@ html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id=
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.jointopt { flex-direction: row !important; align-items: center } .jointopt input { width: 18px; height: 18px; vertical-align: middle; margin-right: 6px } .jjoint button { flex: 1 1 140px; min-height: 46px }
 .bvol { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; position: relative; z-index: 2 } .bvol button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #3A3D52; background: #15161E; color: #A2A3B5; padding: 0 } .bvol span { color: #8E90A6; font-size: 13px }
 .votep { border: 1px solid #5A2520; background: #1A0E10; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px } .votep h3 { margin: 0; color: #FF8A78 } .votep p { margin: 0; font-size: .9rem; color: var(--muted); word-break: keep-all } .votep .nmsg { color: var(--paper); font-weight: 700 }
 .votegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px } .voteb { min-height: 64px; border-radius: 14px; border: 1px solid #5A2520; background: #2A1514; color: var(--paper); font-size: 1.3rem; font-weight: 800; display: grid; place-items: center } .voteb small { font-size: .65rem; color: var(--muted) } .voteb.on { background: var(--stamp); border-color: var(--stamp); color: #fff } .voteb[disabled] { opacity: .5 }
@@ -294,6 +295,15 @@ js = R(js, '<span id="endArea"></span></div>', '<span id="endArea"></span></div>
 js = R(js, 'function endIdle() {\n  const area = $("endArea"); if (!area) return;', 'function endIdle() {\n  renderCerCtl();\n  const area = $("endArea"); if (!area) return;')
 js = R(js, 'stage: stageLive, layout:', 'vote: p[4] === "trial" && tvState() ? { day: S.day, cands: tvState().cands, open: tvState().open, counts: tvState().counts || {}, n: tvState().n || 0, at: tvState().at } : null, stage: stageLive, layout:')
 js = R(js, '"광장 재판": ["의심스러운 사람을 지명하고, 신호에 맞춰 동시에 가리키세요.", "down"]', '"광장 재판": ["지명된 사람의 해명을 듣고, 투표가 열리면 휴대폰으로 익명 투표하세요.", "card"]')
+# (prepared) joint statement phase
+js = R(js, '    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);', '    ...(S.joint ? [["합의안", 180, `"찬성과 반대가 함께 모이세요. 2분 동안 양쪽 근거를 모두 담은 우리 구역 합의안을 만들고, 구역별로 30초씩 발표합니다."`, "", "debate"]] : []),\n    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);')
+js = R(js, '    (st.extra[d] || []).forEach((v, di) => { if (v) add(d, di, v); });', '    Object.entries(st.judge[d] || {}).forEach(([di, x]) => { if (x && x.joint) add(d, +di, +x.joint); });\n    (st.extra[d] || []).forEach((v, di) => { if (v) add(d, di, v); });')
+js = R(js, 'const STU = { ', 'const STU = { "합의안": ["찬성과 반대가 함께 모여 우리 구역의 합의안을 만드세요. 양쪽 근거를 모두 담고, 조건이나 대안을 붙이세요.", "card"], ')
+js = R(js, '<span id="newArea" style="flex:', '${jointToggleUI()}<span id="newArea" style="flex:')
+js = R(js, 'bindSetupGuide(); bindLayout();', 'bindSetupGuide(); bindLayout(); bindJointToggle();')
+js = R(js, '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>', '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${S.joint ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}')
+js = R(js, '    $("frameBtn").onclick = showFrame;', '    $("frameBtn").onclick = showFrame; if ($("jointBtn")) $("jointBtn").onclick = () => { stageLive = { k: "joint", at: NET.now() }; schedulePublish(); showStage(JOINT_FRAME()); };')
+js = R(js, 'stage: stageLive, layout:', 'joint: !!S.joint, stage: stageLive, layout:')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

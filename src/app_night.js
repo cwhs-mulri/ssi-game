@@ -147,6 +147,7 @@ const SPLASH = {
   "입론": ["talk", "입론 시작", "한 사람당 30초, 발언 틀을 사용하세요"],
   "검색": ["search", "검색 시간", "확인할 근거를 먼저 말하고 휴대폰을 드세요"],
   "반론·질문": ["talk", "반론과 질문", "휴대폰을 내려놓고 질문 카드를 쓰세요"],
+  "합의안": ["meet", "합의의 시간", "찬성과 반대가 함께 우리 구역의 합의안을 만드세요"],
   "심판 판정": ["judge", "판정의 시간", "심판의 판정과 오늘의 MVP를 기다리세요"],
   "광장 대표토론": ["plaza", "광장이 열렸습니다", "구역 대표들이 광장에 섭니다"],
   "광장 재판": ["trial", "광장 재판", "가장 의심스러운 사람은 누구일까요?"],
@@ -184,13 +185,13 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const st = v && v.stage;
-  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout" || st.k === "cer")) {
+  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout" || st.k === "cer" || st.k === "joint")) {
     const sk = st.at + (st.why ? "|w" : "");
     if (stuStageDismissed === st.at || stuStageAt === sk) return;
     const fresh = stuStageAt === null || String(stuStageAt).split("|")[0] !== String(st.at);
     stuStageAt = sk; hideSplash();
     if (st.k === "tip" && fresh) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch {} }
-    $("stageInner").innerHTML = st.k === "cer" ? ceremonyHTML(st) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "joint" ? JOINT_FRAME() : st.k === "cer" ? ceremonyHTML(st) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -334,7 +335,7 @@ function dodoCard(c, seat, day, sealed) {
 }
 
 // ---------------- judge phone: debate checklist (district) and plaza checklist ----------------
-const DEBATE_PH = ["진영 회의", "입론", "검색", "반론·질문", "심판 판정"];
+const DEBATE_PH = ["진영 회의", "입론", "검색", "반론·질문", "합의안", "심판 판정"];
 const CHECKS = ["근거를 말했다", "출처를 댔다", "상대 질문에 답했다"];
 const jKey = (code, day, kind, seat) => `ssi-judge-${code}-${day}-${kind}-${seat}`;
 let judgeMsg = "";
@@ -354,6 +355,7 @@ function renderJudge() {
   if (kind === "d") {
     const debaters = R.D[di].filter(x => x !== seat);
     extra = `<div class="jrow"><span>거짓 근거 적발</span><div class="jstep"><button type="button" data-l="-1">−</button><b>${st.lies}</b><button type="button" data-l="1">+</button></div></div>
+      ${e.joint ? `<div class="jrow col"><span>합의안 체크</span><div class="jmvp jjoint">${["양쪽 근거를 모두 담았다", "조건·대안을 제시했다"].map((t, i) => `<button type="button" class="${(st.jt || [0, 0])[i] ? "on" : ""}" data-jt="${i}">${(st.jt || [0, 0])[i] ? "✓ " : ""}${t}</button>`).join("")}</div></div>` : ""}
       <div class="jrow col"><span>발언한 사람 <small class="muted">(한 번이라도 말하면 누르기)</small></span><div class="jmvp jspoke">${debaters.map(x => `<button type="button" class="${(st.spoke || []).includes(x) ? "on" : ""}" data-sp="${x}">${x}</button>`).join("")}</div></div>
       <div class="jrow col"><span>오늘의 MVP</span><div class="jmvp">${debaters.map(x => `<button type="button" class="${st.mvp === x ? "on" : ""}" data-m="${x}">${x}</button>`).join("")}</div></div>`;
   } else {
@@ -367,13 +369,14 @@ function renderJudge() {
     <p class="nmsg">${esc(judgeMsg || (st.sent ? `보고 완료 ${hhmm(st.sent)} · 바꾸면 다시 보고하세요` : "판정 시간에 보고 버튼을 누르세요."))}</p></div>`;
   box.querySelectorAll(".jchk").forEach(b => b.onclick = () => { st[b.dataset.s][+b.dataset.i] ^= 1; save2(); judgeMsg = ""; renderJudge(); });
   box.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { st.lies = Math.max(0, Math.min(3, st.lies + +b.dataset.l)); save2(); renderJudge(); });
+  box.querySelectorAll("[data-jt]").forEach(b => b.onclick = () => { st.jt = st.jt || [0, 0]; st.jt[+b.dataset.jt] ^= 1; save2(); renderJudge(); });
   box.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const x = +b.dataset.sp, a = st.spoke || []; st.spoke = a.includes(x) ? a.filter(y => y !== x) : [...a, x]; save2(); renderJudge(); });
   box.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { st.mvp = st.mvp === +b.dataset.m ? null : +b.dataset.m; save2(); renderJudge(); });
   box.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { st.win = b.dataset.w; save2(); renderJudge(); });
   $("judgeSend").onclick = async () => {
     if (kind === "p" && !st.win) { judgeMsg = "내 판정(찬성 승리/반대 승리/무승부)을 먼저 고르세요."; renderJudge(); return; }
     judgeMsg = "보내는 중…"; renderJudge();
-    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0, spoke: (st.spoke || []).join(",") } : { ppro: P, pcon: Q, win: st.win };
+    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0, spoke: (st.spoke || []).join(","), joint: (st.jt || [0, 0]).reduce((a, b) => a + b, 0) } : { ppro: P, pcon: Q, win: st.win };
     try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/${kind === "d" ? "j" : "p"}${e.day}/s${seat}`, Object.assign({ uid: NET.user.uid, k: "j", target: seat, t: NET.stamp() }, rep)); st.sent = Date.now(); save2(); judgeMsg = ""; }
     catch (err) { judgeMsg = "전송 실패. 다시 눌러 주세요."; }
     renderJudge();
@@ -394,7 +397,7 @@ function teacherJudgeWatch() {
       const r = v["s" + js]; if (!r) return;
       const cur = (S.judge[d] || {})[di];
       if (cur && cur.pt && cur.pt >= (+r.t || 0)) return;
-      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, spoke: String(r.spoke || "").split(",").filter(Boolean).map(Number), pt: +r.t || Date.now(), phone: true };
+      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, spoke: String(r.spoke || "").split(",").filter(Boolean).map(Number), joint: Math.max(0, Math.min(2, +r.joint || 0)), pt: +r.t || Date.now(), phone: true };
       changed = true;
     });
     if (changed) { save(); chime(1); if (step === "debate") renderStep(); renderBar(); }
@@ -771,3 +774,11 @@ function bgmFor(e) {
 function bgmUpdate(e) { if ($("viewBoard").hidden) return; const k = SFX.on ? bgmFor(e) : null; BGM.play(k); }
 function bgmControls() { return `<span class="bvol"><button type="button" data-bv="-0.1" aria-label="음악 작게">−</button><span>음악 ${Math.round(BGM.vol * 10)}</span><button type="button" data-bv="0.1" aria-label="음악 크게">+</button></span>`; }
 document.addEventListener("click", ev => { const b = ev.target && ev.target.closest && ev.target.closest("[data-bv]"); if (!b) return; BGM.setVol(BGM.vol + +b.dataset.bv); const s = b.parentElement.querySelector("span"); if (s) s.textContent = `음악 ${Math.round(BGM.vol * 10)}`; });
+
+// ================= (준비) 찬반 합의안 시간 =================
+const JOINT_FRAME = () => `<div class="kicker">합의안 발표 틀</div><h2>찬성과 반대가 함께 만든 우리 구역 합의안</h2>
+  <div class="tipbody" style="background:rgba(76,192,143,.12);border-color:var(--judge,#4CC08F)">"우리 구역은 찬성 쪽 근거 ________ 와 반대 쪽 근거 ________ 를 모두 고려하여, ________ 라는 조건(또는 대안)으로 ________ 하자는 데 합의했다."</div>
+  <div class="items"><div class="item"><small>체크 ①</small>양쪽 근거를 모두 담았나?</div><div class="item"><small>체크 ②</small>조건이나 대안을 제시했나?</div><div class="item"><small>발표</small>구역 대표 1명이 30초 안에 발표 (찬성 1명 + 반대 1명이 함께 나와도 좋아요)</div></div>
+  <button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${S.joint ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
+function bindJointToggle() { const b = $("jointOn"); if (b) b.onchange = () => { snap(); S.joint = b.checked; save(); buildPhases(); restoreRun(); renderAllT(); schedulePublish(); }; }
