@@ -302,6 +302,17 @@ nav { flex-wrap: wrap }
 .sync button.on { background: var(--ok); color: #0E2A1F; border-color: var(--ok) }
 .sync .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line) } .sync .dot.on { background: var(--ok) } .sync .dot.err { background: var(--stamp) }
 
+.layout { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; margin: 6px 0 }
+.lyhead { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center } .lyhead b { font-size: 1.05rem } .lymode { color: var(--gold); font-size: .88rem }
+.lygrid, .lystage { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.lycol { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #15161E } .lycol h4 { margin: 0 0 6px; display: flex; justify-content: space-between; color: var(--gold) } .lycol h4 span { color: var(--muted); font-size: .8rem }
+.lycol.me { border-color: var(--gold); background: #2A2312 }
+.lyseats { display: flex; flex-wrap: wrap; gap: 6px }
+.lyseat { min-width: 44px; min-height: 40px; border-radius: 10px; border: 1px solid var(--line); background: #1D1F2A; color: var(--paper); font-weight: 700; display: inline-grid; place-items: center; padding: 2px 6px; line-height: 1.05 }
+.lyseat small { font-size: .6rem; color: var(--judge, #4CC08F) } .lyseat.jd { border-color: #2E6B55 }
+.lyseat.on { background: var(--gold); color: #13141B; border-color: var(--gold) } .lyhint { margin: 0; font-size: .85rem }
+.stage .lystage .lyseat { min-width: 52px; min-height: 46px; font-size: 1.1rem }
+body.boardmode .stage .lystage { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) } body.boardmode .stage .lyseat { min-width: 70px; min-height: 60px; font-size: 1.6rem }
 .installbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: .9rem; white-space: nowrap }
 .installbtn::before { content: "⤓ " }
 .installlink { margin-top: 10px; width: 100%; min-height: 46px; border: 1px dashed var(--gold); border-radius: 12px; background: #1E1A10; color: var(--gold); font-weight: 700 }
@@ -1981,8 +1992,11 @@ function districts(n) {
 }
 const mafiaCount = n => Math.max(2, Math.round(n / 6));
 const districtOf = (n, seat) => districts(n).findIndex(d => d.includes(seat));
+const LAYOUTS = {};
+const districtsFor = c => LAYOUTS[c.code] || districts(c.n);
+const districtOfC = (c, seat) => districtsFor(c).findIndex(d => d.includes(seat));
 function roles(c) {
-  const N = c.n, D = districts(N), r = rng(hash(`v3|${c.key}|${N}`));
+  const N = c.n, D = districtsFor(c), r = rng(hash(`v3|${c.key}|${N}`));
   const judges = D.map(d => d[Math.floor(r() * d.length)]);
   const pool = [...Array(N)].map((_, i) => i + 1).filter(s => !judges.includes(s));
   let mafia;
@@ -2170,7 +2184,7 @@ function cardHTML(c, seat, day, sealed = true, noDodo = false) {
     const isM = p.role === "mafia";
     const mission = isM ? `<div class="mission-box">비밀 임무: 오늘 ${di + 1}구역의 ${SIDE[p.side]} 진영(우리 편)이 지게 만들어라. 같은 편인 척하세요.</div>` : "";
     const tips = isM
-      ? ["거짓 근거가 적발되면 우리 진영이 불리해집니다. 일부러 들키거나, 반론을 약하게 하세요. 너무 티 나면 재판에 넘겨집니다.", "밤에는 휴대폰 화면 위쪽 '밤 행동'에서 동료와 함께 입을 막을 한 사람을 고르세요.", "익명 제보(시즌 1회)를 쓰고 싶으면 선생님께 몰래 신호를 보내세요.", `마피아 동료: ${R.mafia.filter(s => s !== seat).map(s => `${s}번(${districtOf(c.n, s) + 1}구역)`).join(", ")}`]
+      ? ["거짓 근거가 적발되면 우리 진영이 불리해집니다. 일부러 들키거나, 반론을 약하게 하세요. 너무 티 나면 재판에 넘겨집니다.", "밤에는 휴대폰 화면 위쪽 '밤 행동'에서 동료와 함께 입을 막을 한 사람을 고르세요.", "익명 제보(시즌 1회)를 쓰고 싶으면 선생님께 몰래 신호를 보내세요.", `마피아 동료: ${R.mafia.filter(s => s !== seat).map(s => `${s}번(${districtOfC(c, s) + 1}구역)`).join(", ")}`]
       : [day === 1 ? "오늘은 연습 판입니다. 배신자는 아직 없습니다. 토론 방식에 익숙해지세요." : "우리 팀 안에 배신자가 있을 수 있습니다. 근거가 이상하거나 일부러 약하게 말하는 사람을 기억하세요.", "검색 시간에는 확인할 상대 근거 1개를 먼저 말하고 검색하세요.", "입막음을 당했다면 근거를 쪽지에 써서 같은 편이 대신 읽게 하세요."];
     const arrest = isM ? `<details class="arrest"><summary>이미 체포되었다면 여기를 여세요</summary><p style="margin:8px 0 4px;font-size:.92rem">체포된 마피아는 임무가 사라지고, 오늘부터 아래 사실 근거로 우리 진영이 이기도록 토론합니다.</p><div class="evidence" style="margin:0"><b>사실 근거 카드 · ${SIDE[p.side]}</b><p>${esc(p.alt[0])}</p><small>출처: ${esc(p.alt[1])}</small></div></details>` : "";
     body = `<div><span class="stamp ${p.role}">${ROLE[p.role]}</span><span class="stance ${p.side}">오늘 내 입장: ${SIDE[p.side]}</span></div>
@@ -2181,7 +2195,7 @@ function cardHTML(c, seat, day, sealed = true, noDodo = false) {
   }
   return `<div class="case" ${sealed ? 'id="case"' : ""}>
       <div class="tab">${esc(c.code)} · DAY ${day} · ${seat}번</div>
-      <p class="topic">DAY ${day}${day === 1 ? " 연습" : ""} · ${esc(T.name)} · <b>${di + 1}구역</b> (${D[di][0]}~${D[di][D[di].length - 1]}번)</p>
+      <p class="topic">DAY ${day}${day === 1 ? " 연습" : ""} · ${esc(T.name)} · <b>${di + 1}구역</b> (${D[di].join("·")}번)</p>
       <p class="claim">${esc(T.claim)}</p>${body}
       ${sealed ? `<button class="seal" id="seal" type="button" aria-label="카드 열기"><div><strong>기밀 카드</strong><span>밤이 되었습니다. 고개를 숙이고 누르세요</span></div></button>` : ""}
     </div>`;
@@ -2219,7 +2233,7 @@ $("doors").innerHTML = [
 
 
 // ---------------- student: live phase subscription ----------------
-let lastPhaseKey = null, NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
+let cardWait = false, lastPhaseKey = null, NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
 function watchLive(code) {
   if (code === liveCode) return;
   liveCode = code; lastPhaseKey = null; if (liveSub) { liveSub(); liveSub = null; } NETLIVE = {}; liveErr = "";
@@ -2232,7 +2246,12 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v); renderBoard(v);
+      const lsig = JSON.stringify(v && v.layout || null), oldsig = JSON.stringify(LAYOUTS[code] || null);
+      if (v && v.layout) LAYOUTS[code] = v.layout; else delete LAYOUTS[code];
+      const firstLive = !(code in NETLIVE);
+      NETLIVE[code] = v;
+      if ($("cardSlot") && (cardWait || (lsig !== oldsig && $("case")))) { cardWait = false; showCard(false); }
+      renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v); renderBoard(v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -2398,13 +2417,13 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const st = v && v.stage;
-  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip")) {
+  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout")) {
     const sk = st.at + (st.why ? "|w" : "");
     if (stuStageDismissed === st.at || stuStageAt === sk) return;
     const fresh = stuStageAt === null || String(stuStageAt).split("|")[0] !== String(st.at);
     stuStageAt = sk; hideSplash();
     if (st.k === "tip" && fresh) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch {} }
-    $("stageInner").innerHTML = st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -2568,6 +2587,7 @@ function renderJudge() {
   if (kind === "d") {
     const debaters = R.D[di].filter(x => x !== seat);
     extra = `<div class="jrow"><span>거짓 근거 적발</span><div class="jstep"><button type="button" data-l="-1">−</button><b>${st.lies}</b><button type="button" data-l="1">+</button></div></div>
+      <div class="jrow col"><span>발언한 사람 <small class="muted">(한 번이라도 말하면 누르기)</small></span><div class="jmvp jspoke">${debaters.map(x => `<button type="button" class="${(st.spoke || []).includes(x) ? "on" : ""}" data-sp="${x}">${x}</button>`).join("")}</div></div>
       <div class="jrow col"><span>오늘의 MVP</span><div class="jmvp">${debaters.map(x => `<button type="button" class="${st.mvp === x ? "on" : ""}" data-m="${x}">${x}</button>`).join("")}</div></div>`;
   } else {
     extra = `<div class="jrow col"><span>내 판정</span><div class="jwin">${[["pro", "찬성 승리"], ["con", "반대 승리"], ["draw", "무승부"]].map(([v, t]) => `<button type="button" class="${st.win === v ? "on" : ""}" data-w="${v}">${t}</button>`).join("")}</div></div>`;
@@ -2580,12 +2600,13 @@ function renderJudge() {
     <p class="nmsg">${esc(judgeMsg || (st.sent ? `보고 완료 ${hhmm(st.sent)} · 바꾸면 다시 보고하세요` : "판정 시간에 보고 버튼을 누르세요."))}</p></div>`;
   box.querySelectorAll(".jchk").forEach(b => b.onclick = () => { st[b.dataset.s][+b.dataset.i] ^= 1; save2(); judgeMsg = ""; renderJudge(); });
   box.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { st.lies = Math.max(0, Math.min(3, st.lies + +b.dataset.l)); save2(); renderJudge(); });
+  box.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const x = +b.dataset.sp, a = st.spoke || []; st.spoke = a.includes(x) ? a.filter(y => y !== x) : [...a, x]; save2(); renderJudge(); });
   box.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { st.mvp = st.mvp === +b.dataset.m ? null : +b.dataset.m; save2(); renderJudge(); });
   box.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { st.win = b.dataset.w; save2(); renderJudge(); });
   $("judgeSend").onclick = async () => {
     if (kind === "p" && !st.win) { judgeMsg = "내 판정(찬성 승리/반대 승리/무승부)을 먼저 고르세요."; renderJudge(); return; }
     judgeMsg = "보내는 중…"; renderJudge();
-    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0 } : { ppro: P, pcon: Q, win: st.win };
+    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0, spoke: (st.spoke || []).join(",") } : { ppro: P, pcon: Q, win: st.win };
     try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/${kind === "d" ? "j" : "p"}${e.day}/s${seat}`, Object.assign({ uid: NET.user.uid, k: "j", target: seat, t: NET.stamp() }, rep)); st.sent = Date.now(); save2(); judgeMsg = ""; }
     catch (err) { judgeMsg = "전송 실패. 다시 눌러 주세요."; }
     renderJudge();
@@ -2606,7 +2627,7 @@ function teacherJudgeWatch() {
       const r = v["s" + js]; if (!r) return;
       const cur = (S.judge[d] || {})[di];
       if (cur && cur.pt && cur.pt >= (+r.t || 0)) return;
-      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, pt: +r.t || Date.now(), phone: true };
+      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, spoke: String(r.spoke || "").split(",").filter(Boolean).map(Number), pt: +r.t || Date.now(), phone: true };
       changed = true;
     });
     if (changed) { save(); chime(1); if (step === "debate") renderStep(); renderBar(); }
@@ -2727,7 +2748,7 @@ function renderSecret() {
   const c = C(), R = roles(c), caught = caughtAll(), D = S.dodo;
   const pend = D && D.offers ? D.offers.find(x => x[2] == null) : null;
   P.innerHTML = `<div class="secin"><b class="sk">교사 전용 · 전자칠판에는 나오지 않습니다</b>
-    <div><span class="sl">마피아</span>${R.mafia.map(s => `<span class="chip ${caught.includes(s) ? "gone" : "maf"}">${s}번 · ${districtOf(c.n, s) + 1}구역${caught.includes(s) ? " (체포)" : ""}</span>`).join("")}</div>
+    <div><span class="sl">마피아</span>${R.mafia.map(s => `<span class="chip ${caught.includes(s) ? "gone" : "maf"}">${s}번 · ${districtOfC(c, s) + 1}구역${caught.includes(s) ? " (체포)" : ""}</span>`).join("")}</div>
     <div><span class="sl">심판</span>${R.judges.map((s, i) => `<span class="chip">${i + 1}구역 ${s}번</span>`).join("")}</div>
     <div><span class="sl">도도새</span>${D && D.seat ? `<span class="chip dodo">${D.seat}번 (DAY ${D.day}부터)${dodoWon() ? " · 승리" : ""}</span>` : pend ? `<span class="chip">제안 중: ${pend[1]}번 (응답 대기)</span>` : `<span class="muted">아직 없음 (DAY 3 밤부터 제안)</span>`}</div>
     <button class="sm" id="secretHide">숨기기</button></div>`;
@@ -2781,6 +2802,38 @@ async function doInstall() {
 updateInstallUI();
 if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
 
+// ---------------- teacher: district / seat layout (출석번호 순 · 무작위 · 직접 배치) ----------------
+let lyPick = null;
+function layoutUI() {
+  const c = C(), D = districtsFor(c), R = roles(c), locked = S.day > 1 || S.ended;
+  return `<div class="layout"><div class="lyhead"><b>구역·자리 배치</b><span class="lymode">${S.layout ? "직접·무작위 배치" : "출석번호 순 (기본)"}</span>
+    ${locked ? `<span class="muted" style="font-size:.85rem">DAY 2부터는 바꿀 수 없습니다 (역할이 바뀌므로)</span>` : `<button class="sm" id="lyRand">무작위 배치</button><button class="sm" id="lyReset" ${S.layout ? "" : "disabled"}>출석번호 순으로</button>`}
+    <button class="sm gold" id="lyShow">배치표 띄우기 (칠판·휴대폰)</button></div>
+    <div class="lygrid">${D.map((m, di) => `<div class="lycol"><h4>${di + 1}구역 <span>${m.length}명</span></h4><div class="lyseats">${m.map(s => `<button type="button" class="lyseat ${lyPick === s ? "on" : ""} ${R.judges.includes(s) ? "jd" : ""}" data-s="${s}" ${locked ? "disabled" : ""}>${s}${R.judges.includes(s) ? "<small>심판</small>" : ""}</button>`).join("")}</div></div>`).join("")}</div>
+    ${locked ? "" : `<p class="muted lyhint">${lyPick ? `${lyPick}번 선택됨 · 바꿀 학생 번호를 누르세요 (같은 번호를 다시 누르면 취소)` : "번호 두 개를 차례로 누르면 두 학생의 구역이 서로 바뀝니다. 학생들이 카드를 받기 전에 확정하세요. 심판은 배치에 따라 다시 정해집니다."}</p>`}</div>`;
+}
+function setLayout(D) { snap(); S.layout = D; if (D) LAYOUTS[S.code] = D; else delete LAYOUTS[S.code]; save(); schedulePublish(); renderStep(); renderBar(); }
+function bindLayout() {
+  const c = C();
+  if ($("lyRand")) $("lyRand").onclick = () => { const sizes = districts(c.n).map(d => d.length), all = shuffle([...Array(c.n)].map((_, i) => i + 1), Math.random); let k = 0; lyPick = null; setLayout(sizes.map(z => all.slice(k, k += z).sort((a, b) => a - b))); };
+  if ($("lyReset")) $("lyReset").onclick = () => { lyPick = null; setLayout(null); };
+  if ($("lyShow")) $("lyShow").onclick = () => { stageLive = { k: "layout", D: districtsFor(c), J: roles(c).judges, at: NET.now() }; schedulePublish(); showStage(layoutStage(districtsFor(c), roles(c).judges, null) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); };
+  document.querySelectorAll(".lyseat").forEach(b => b.onclick = () => {
+    const s = +b.dataset.s;
+    if (!lyPick || lyPick === s) { lyPick = lyPick === s ? null : s; renderStep(); return; }
+    const D = districtsFor(c).map(d => d.slice()), a = lyPick; lyPick = null;
+    const ia = D.findIndex(d => d.includes(a)), ib = D.findIndex(d => d.includes(s));
+    if (ia === ib) { renderStep(); return; }
+    D[ia][D[ia].indexOf(a)] = s; D[ib][D[ib].indexOf(s)] = a; D.forEach(d => d.sort((x, y) => x - y));
+    setLayout(D);
+  });
+}
+function layoutStage(D, J, mine) {
+  return `<div class="kicker">SEATING · 구역 배치표</div><h2>${mine ? `나는 <span style="color:var(--gold)">${D.findIndex(d => d.includes(mine)) + 1}구역</span>` : "우리 반 구역 배치"}</h2>
+    <div class="lystage">${D.map((m, di) => `<div class="lycol ${mine && m.includes(mine) ? "me" : ""}"><h4>${di + 1}구역</h4><div class="lyseats">${m.map(s => `<span class="lyseat ${s === mine ? "on" : ""} ${(J || []).includes(s) ? "jd" : ""}">${s}${(J || []).includes(s) ? "<small>심판</small>" : ""}</span>`).join("")}</div></div>`).join("")}</div>
+    <p class="muted" style="margin:0">같은 구역끼리 모여 앉으세요. 심판은 구역마다 1명입니다.</p>`;
+}
+
 // ---------------- student ----------------
 fillSelect($("day"), 1, 6, 1, v => `DAY ${v}${v === 1 ? " (연습)" : ""}`);
 function syncSeats() { const c = parseCode($("code").value); const n = c ? c.n : 30; const cur = +$("seat").value || 1; fillSelect($("seat"), 1, n, Math.min(cur, n), v => `${v}번`); }
@@ -2821,7 +2874,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1029-1445</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1030-1146</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }
@@ -2832,6 +2885,7 @@ setInterval(() => { const el = $("liveCd"); if (!el || $("viewStudent").hidden) 
 const ss = { get(k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 function showCard(open) {
   const c = parseCode($("code").value); if (!c) return;
+  if (NET.mode !== "local" && !(c.code in NETLIVE)) { cardWait = true; $("cardSlot").className = "empty"; $("cardSlot").innerHTML = `<div><strong style="font-size:1.3rem">선생님 화면과 연결 중…</strong><br>잠시 후 카드가 나타납니다. 선생님이 로그인하고 진행을 시작해야 합니다.</div>`; return; }
   const seat = +$("seat").value, day = +$("day").value;
   $("cardSlot").className = "";
   $("cardSlot").innerHTML = cardHTML(c, seat, day, true) + `<div class="card-actions"><button type="button" id="hideBtn">카드 가리기</button></div>`;
@@ -2846,7 +2900,7 @@ let cls = store.get("ssi-v3-class") ?? 0, S = null, history = [];
 const skey = i => `ssi-v3-${i}`;
 function makeKey() { const a = new Uint32Array(4); try { crypto.getRandomValues(a); } catch { a.forEach((_, i) => a[i] = Math.floor(Math.random() * 1e9)); } let s = ""; a.forEach(v => s += ALPHA[v % ALPHA.length]); return s; }
 const fresh = (n, days) => ({ code: `${n}-${makeKey()}`, days, day: 1, night: {}, judge: {}, plaza: {}, noms: {}, trials: [], tip: null, extra: {}, ended: false });
-function load() { S = store.get(skey(cls)); if (!S || !parseCode(S.code)) { S = fresh(24, 4); store.set(skey(cls), S); } history = []; }
+function load() { S = store.get(skey(cls)); if (!S || !parseCode(S.code)) { S = fresh(24, 4); store.set(skey(cls), S); } history = []; CLASSES.forEach((_, i) => { const st = store.get(skey(i)), pc = st && parseCode(st.code); if (pc) { if (st.layout) LAYOUTS[pc.code] = st.layout; else delete LAYOUTS[pc.code]; } }); }
 const save = () => store.set(skey(cls), S);
 const snap = () => { history.push(JSON.stringify(S)); };
 const C = () => parseCode(S.code);
@@ -2866,10 +2920,10 @@ function compute(st = S) {
         R.mafia.forEach(m => { const p = cards.players[m]; if (p.district === di && !caughtBefore(d, st).includes(m) && winner && p.side !== winner) betray[m] = (betray[m] || 0) + 1; });
       }
     });
-    const nt = st.night[d]; if (nt && nt.target) add(d, districtOf(c.n, +nt.target), 1);
+    const nt = st.night[d]; if (nt && nt.target) add(d, districtOfC(c, +nt.target), 1);
     const pz = st.plaza[d];
-    if (pz && pz.win && pz.win !== "draw") (pz.reps || []).forEach((s, i) => { if (s && (i < 2 ? "pro" : "con") === pz.win) add(d, districtOf(c.n, +s), 1); });
-    if (pz && pz.aud) add(d, districtOf(c.n, +pz.aud), 1);
+    if (pz && pz.win && pz.win !== "draw") (pz.reps || []).forEach((s, i) => { if (s && (i < 2 ? "pro" : "con") === pz.win) add(d, districtOfC(c, +s), 1); });
+    if (pz && pz.aud) add(d, districtOfC(c, +pz.aud), 1);
     st.trials.filter(t => t[0] === d && t[2] && t[3] != null).forEach(t => add(d, t[3], 2));
     if (st.tip && st.tip.day === d && st.tip.dist != null) add(d, st.tip.dist, 2);
     (st.extra[d] || []).forEach((v, di) => { if (v) add(d, di, v); });
@@ -2934,9 +2988,9 @@ function renderStep() {
       <div class="qrbox"><img src="${QR_SRC}" alt="게임 페이지 QR 코드"><div><div class="muted" style="font-size:.85rem">학생 접속: QR → '학생 카드' → 아래 코드 입력</div><div class="codebig">${esc(S.code)}</div><div class="muted" style="margin-top:6px">DAY ${d} · ${esc(TOPICS[dayTopic(c, d)].name)} · ${R.D.length}개 구역 · 마피아 ${R.mafia.length}명 · 구역 심판 ${R.judges.map((s, i) => `${i + 1}구역 ${s}번`).join(", ")}</div></div></div>
       <div class="rowx"><label class="f" for="tN">반 인원<select id="tN"></select></label><label class="f" for="tD">시즌 길이<select id="tD"></select></label><span id="newArea" style="flex:1;min-width:200px"></span></div>
       <div class="used">${[...Array(S.days)].map((_, i) => `<span class="t ${i + 1 < d ? "done" : ""}" ${i + 1 === d ? 'style="border-color:var(--gold);color:var(--gold)"' : ""}>DAY ${i + 1}${isPlazaDay(i + 1, S.days) ? "★" : ""} ${esc(TOPICS[dayTopic(c, i + 1)].name)}</span>`).join("")}<span>★ 광장 대표토론</span></div>
-      <ul class="todo"><li>학생들은 시즌 내내 같은 출석번호를 씁니다. 구역은 출석번호 순으로 자동 편성됩니다.</li><li>심판은 공개해도 됩니다. 구역 심판에게 체크리스트 역할을 알려 주세요.</li><li>준비가 끝나면 위쪽 막대의 '시작'을 누르고 밤부터 진행합니다.</li></ul>
+      ${layoutUI()}<ul class="todo"><li>학생들은 시즌 내내 같은 출석번호를 씁니다. 구역은 기본으로 출석번호 순이고, 위에서 무작위·직접 배치로 바꿀 수 있습니다.</li><li>심판은 공개해도 됩니다. 구역 심판에게 체크리스트 역할을 알려 주세요.</li><li>준비가 끝나면 위쪽 막대의 '시작'을 누르고 밤부터 진행합니다.</li></ul>
       <div class="next-row"><span class="muted">${d === 1 ? "DAY 1은 연습 판: 밤의 행동과 재판이 없습니다." : ""}</span>${nextStepBtn("시작")}</div>`;
-    bindSetupGuide(); fillSelect($("tN"), 12, 30, c.n, v => `${v}명`); fillSelect($("tD"), 3, 6, S.days, v => `${v}일`);
+    bindSetupGuide(); bindLayout(); fillSelect($("tN"), 12, 30, c.n, v => `${v}명`); fillSelect($("tD"), 3, 6, S.days, v => `${v}일`);
     newIdle();
   } else if (step === "night") {
     const nt = S.night[d] || {}, everyone = [...Array(c.n)].map((_, i) => i + 1).filter(s => !caughtBefore(d).includes(s));
@@ -2963,10 +3017,10 @@ function renderStep() {
       <div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button><button class="danger" id="tipShow" ${S.tip && S.tip.day !== d || d === 1 || S.ended ? "disabled" : ""}>익명 제보 띄우기 (시즌 1회)</button>
       ${S.tip && S.tip.day === d ? `<label class="f" for="tipDist">제보를 먼저 반박한 구역<select id="tipDist"><option value="">—</option>${R.D.map((_, di) => `<option value="${di}" ${S.tip.dist === di ? "selected" : ""}>${di + 1}구역</option>`).join("")}</select></label><button class="gold" id="tipSave">+2 주기</button>` : `<span class="muted" style="font-size:.85rem">${S.tip ? `익명 제보는 DAY ${S.tip.day}에 사용함` : "마피아가 휴대폰으로 제보하면 자동으로 뜹니다. 직접 띄워도 됩니다"}</span>`}</div>
       <p class="label" style="margin:6px 0 0">심판 보고 입력 (체크 0~3 · 거짓 적발 수 · MVP)</p>
-      <div class="grid4">${R.D.map((m, di) => { const x = j[di] || {}, debaters = m.filter(s => s !== R.judges[di]); const ww = x.pro == null ? "" : (+x.pro > +x.con ? `<b>찬성 승리</b>` : +x.con > +x.pro ? `<b>반대 승리</b>` : "<b>무승부</b>"); return `<div class="dcard"><h3>${di + 1}구역 <span>${m[0]}~${m[m.length - 1]}번 · 심판 ${R.judges[di]}번</span></h3>
+      <div class="grid4">${R.D.map((m, di) => { const x = j[di] || {}, debaters = m.filter(s => s !== R.judges[di]); const ww = x.pro == null ? "" : (+x.pro > +x.con ? `<b>찬성 승리</b>` : +x.con > +x.pro ? `<b>반대 승리</b>` : "<b>무승부</b>"); return `<div class="dcard"><h3>${di + 1}구역 <span>${m.join("·")}번 · 심판 ${R.judges[di]}번</span></h3>
         <div class="mini"><label class="f" for="jp${di}">찬성 체크${sel(`jp${di}`, x.pro ?? 0, 3)}</label><label class="f" for="jc${di}">반대 체크${sel(`jc${di}`, x.con ?? 0, 3)}</label>
         <label class="f" for="jl${di}">거짓 적발 수${sel(`jl${di}`, x.lies ?? 0, 3)}</label><label class="f" for="jm${di}">MVP<select id="jm${di}">${seatOpts(debaters, x.mvp)}</select></label></div>
-        <div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}</span></div></div>`; }).join("")}</div>
+        <div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}${x.spoke ? (() => { const miss = debaters.filter(s => !x.spoke.includes(s)); return `<br><span class="${miss.length ? "warn" : "muted"}" style="font-size:.82rem">발언 ${debaters.length - miss.length}/${debaters.length}${miss.length ? ` · 아직: ${miss.join(", ")}번` : " · 모두 발언"}</span>`; })() : ""}</span></div></div>`; }).join("")}</div>
       <div class="result">${w ? `오늘의 토론 결과: <span class="hit">${w}${w === "무승부" ? "" : " 승리"}</span>` : `<span class="muted">구역별로 저장하면 오늘의 승리 진영이 나옵니다.</span>`}</div>
       <div class="next-row"><span></span>${nextStepBtn()}</div>`;
     P.querySelectorAll(".subphase button").forEach(b => b.onclick = () => { pi = +b.dataset.p; setPhase(); renderStep(); });
@@ -2994,10 +3048,10 @@ function renderStep() {
     const pool = [...new Set(noms.filter(Boolean))].filter(s => !caught.includes(s));
     const last = judgedToday[0];
     P.innerHTML = `${head("trial", `DAY ${d} 광장 재판`, "구역별 용의자 지명 → 15초 해명 → 전체 동시 투표 → 1명 판정")}${sayBox("trial")}
-      <div class="grid4">${R.D.map((m, di) => `<div class="dcard"><h3>${di + 1}구역 <span>${m[0]}~${m[m.length - 1]}번</span></h3><label class="f" for="nm${di}">지명한 용의자<select id="nm${di}" data-n="${di}" ${last || S.ended ? "disabled" : ""}>${seatOpts([...Array(c.n)].map((_, i) => i + 1).filter(s => !caught.includes(s) || noms[di] === s), noms[di], "지명 안 함")}</select></label></div>`).join("")}</div>
+      <div class="grid4">${R.D.map((m, di) => `<div class="dcard"><h3>${di + 1}구역 <span>${m.join("·")}번</span></h3><label class="f" for="nm${di}">지명한 용의자<select id="nm${di}" data-n="${di}" ${last || S.ended ? "disabled" : ""}>${seatOpts([...Array(c.n)].map((_, i) => i + 1).filter(s => !caught.includes(s) || noms[di] === s), noms[di], "지명 안 함")}</select></label></div>`).join("")}</div>
       <div class="rowx"><label class="f" for="tVote">전체 투표 1위<select id="tVote">${pool.length && !last ? pool.map(s => `<option value="${s}">${s}번</option>`).join("") : `<option value="">—</option>`}</select></label><button class="danger bigbtn" id="trialBtn" ${!pool.length || last || S.ended ? "disabled" : ""}>판정 발표</button></div>
       <div class="result" id="trialResult">${last ? (last[2] ? `<span class="hit">${last[1]}번은 마피아가 맞습니다! 체포${last[3] != null ? ` · ${last[3] + 1}구역 +2` : ""}</span>` : (S.dodo && S.dodo.seat === last[1] && last[0] >= S.dodo.day ? `<span class="hit">${last[1]}번은 마피아가 아닙니다. 사실 도도새였습니다! 재판대에 올라 도도새 승리!</span>` : `<span class="miss">${last[1]}번은 마피아가 아닙니다. 누명이었습니다.</span>`)) + `<br><span class="muted">남은 마피아 ${R.mafia.length - caught.length}명</span>` : `<span class="muted">지명을 모두 고른 뒤 투표 1위를 판정하세요. 화면에는 그 사람이 마피아인지만 나옵니다.</span>`}</div>
-      <div class="log">${S.trials.map(([dd, s, hit]) => `<div>DAY ${dd} · ${s}번 (${districtOf(c.n, s) + 1}구역) → ${hit ? "마피아 체포" : S.dodo && S.dodo.seat === s && dd >= S.dodo.day ? "도도새 승리" : "시민, 누명"}</div>`).join("")}</div>
+      <div class="log">${S.trials.map(([dd, s, hit]) => `<div>DAY ${dd} · ${s}번 (${districtOfC(c, s) + 1}구역) → ${hit ? "마피아 체포" : S.dodo && S.dodo.seat === s && dd >= S.dodo.day ? "도도새 승리" : "시민, 누명"}</div>`).join("")}</div>
       <div class="next-row"><span></span>${nextStepBtn()}</div>`;
     P.querySelectorAll("select[data-n]").forEach(s => s.onchange = () => { snap(); (S.noms[d] = S.noms[d] || [])[+s.dataset.n] = +s.value || null; save(); renderStep(); });
     $("trialBtn").onclick = () => {
@@ -3009,12 +3063,12 @@ function renderStep() {
     const { per, totals, endBonus, betray, allCaught } = compute(), days = Object.keys(per).map(Number).sort((a, b) => a - b);
     const sorted = [...new Set(totals)].sort((a, b) => b - a), max = Math.max(1, ...totals);
     let tbl = `<thead><tr><th style="text-align:left">구역</th>${days.map(dd => `<th>DAY ${dd}<br><span style="font-weight:500">${esc(TOPICS[dayTopic(c, dd)].name)}</span></th>`).join("")}${S.ended ? "<th>시즌 결과</th>" : ""}<th>합계</th><th>순위</th><th style="text-align:left">오늘 보너스</th></tr></thead><tbody>`;
-    R.D.forEach((m, di) => { const rank = sorted.indexOf(totals[di]) + 1; tbl += `<tr><td class="g">${di + 1}구역 <span class="muted" style="font-weight:500;font-size:.8rem">${m[0]}~${m[m.length - 1]}번</span></td>${days.map(dd => `<td class="${dd === d ? "cur" : ""}">${per[dd][di] || 0}</td>`).join("")}${S.ended ? `<td>${endBonus}</td>` : ""}<td class="total">${totals[di]}<div class="bar"><i style="width:${(totals[di] / max * 100).toFixed(0)}%"></i></div></td><td><span class="rank ${rank === 1 && totals[di] > 0 ? "r1" : ""}">${rank}</span></td><td><div class="acts"><button class="sm" data-d="${di}" data-p="1" ${S.ended ? "disabled" : ""}>+1</button><button class="sm" data-d="${di}" data-p="-1" ${S.ended ? "disabled" : ""}>−1</button></div></td></tr>`; });
+    R.D.forEach((m, di) => { const rank = sorted.indexOf(totals[di]) + 1; tbl += `<tr><td class="g">${di + 1}구역 <span class="muted" style="font-weight:500;font-size:.8rem">${m.join("·")}번</span></td>${days.map(dd => `<td class="${dd === d ? "cur" : ""}">${per[dd][di] || 0}</td>`).join("")}${S.ended ? `<td>${endBonus}</td>` : ""}<td class="total">${totals[di]}<div class="bar"><i style="width:${(totals[di] / max * 100).toFixed(0)}%"></i></div></td><td><span class="rank ${rank === 1 && totals[di] > 0 ? "r1" : ""}">${rank}</span></td><td><div class="acts"><button class="sm" data-d="${di}" data-p="1" ${S.ended ? "disabled" : ""}>+1</button><button class="sm" data-d="${di}" data-p="-1" ${S.ended ? "disabled" : ""}>−1</button></div></td></tr>`; });
     tbl += `</tbody>`;
     let ans = "";
     if (S.ended) {
       const caught = caughtAll();
-      ans = `<p class="label" style="margin:8px 0 0">시즌 종료 해설</p><p style="margin:0;font-size:1.1rem"><b class="${allCaught ? "status-win" : "status-lose"}">${allCaught ? "시민 승리" : "마피아 승리"}</b></p><div class="groups">` + R.mafia.map(s => { let h = `<div class="group"><h3>${s}번 · ${districtOf(c.n, s) + 1}구역 마피아 · ${caught.includes(s) ? "체포" : "생존"} · 배신 성공 ${betray[s] || 0}회</h3><ol>`; for (let dd = 2; dd <= S.day; dd++) { if (caughtBefore(dd).includes(s)) break; const { T, players } = dayCards(c, dd), p = players[s]; h += `<li><span class="n">D${dd}</span><span class="chip ${p.side}">${SIDE[p.side]}</span><span class="chip citizen">${esc(T.name)}</span><span class="lie">${esc(p.text)}<em>무엇이 틀렸을까? ${esc(p.why)}</em></span></li>`; } return h + `</ol></div>`; }).join("") + `</div>`;
+      ans = `<p class="label" style="margin:8px 0 0">시즌 종료 해설</p><p style="margin:0;font-size:1.1rem"><b class="${allCaught ? "status-win" : "status-lose"}">${allCaught ? "시민 승리" : "마피아 승리"}</b></p><div class="groups">` + R.mafia.map(s => { let h = `<div class="group"><h3>${s}번 · ${districtOfC(c, s) + 1}구역 마피아 · ${caught.includes(s) ? "체포" : "생존"} · 배신 성공 ${betray[s] || 0}회</h3><ol>`; for (let dd = 2; dd <= S.day; dd++) { if (caughtBefore(dd).includes(s)) break; const { T, players } = dayCards(c, dd), p = players[s]; h += `<li><span class="n">D${dd}</span><span class="chip ${p.side}">${SIDE[p.side]}</span><span class="chip citizen">${esc(T.name)}</span><span class="lie">${esc(p.text)}<em>무엇이 틀렸을까? ${esc(p.why)}</em></span></li>`; } return h + `</ol></div>`; }).join("") + `</div>`;
     }
     const w = dayWinner(d);
     P.innerHTML = `${head("wrap", `DAY ${d} 마무리`, "오늘의 결과와 구역 점수입니다.")}${sayBox("wrap")}
@@ -3099,7 +3153,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("stage"
 let pubTimer = null, booted = false;
 function liveEntry() {
   const p = phases[pi];
-  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, stage: stageLive, tipUsed: !!S.tip, dodo: dodoPending(), verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out: caughtBefore(S.day), updated: NET.now() };
+  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, stage: stageLive, layout: S.layout || null, tipUsed: !!S.tip, dodo: dodoPending(), verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out: caughtBefore(S.day), updated: NET.now() };
 }
 function schedulePublish() { if (!booted) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }
 $("syncBtn").onclick = async () => { try { if (NET.isTeacher()) await NET.logout(); else await NET.teacherLogin(); } catch (e) { setSync("err", "로그인 실패 " + ((e && e.code) || "")); } };

@@ -1,6 +1,6 @@
 
 // ---------------- student: live phase subscription ----------------
-let lastPhaseKey = null, NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
+let cardWait = false, lastPhaseKey = null, NETLIVE = {}, liveCode = null, liveSub = null, liveErr = "";
 function watchLive(code) {
   if (code === liveCode) return;
   liveCode = code; lastPhaseKey = null; if (liveSub) { liveSub(); liveSub = null; } NETLIVE = {}; liveErr = "";
@@ -13,7 +13,12 @@ function watchLive(code) {
       const pk = v ? `${v.day}|${v.pi}|${v.phase}` : null;
       if (lastPhaseKey !== null && pk && pk !== lastPhaseKey && NET.now() - (v.updated || 0) < 60e3) showSplash(v);
       lastPhaseKey = pk;
-      NETLIVE[code] = v; renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v); renderBoard(v);
+      const lsig = JSON.stringify(v && v.layout || null), oldsig = JSON.stringify(LAYOUTS[code] || null);
+      if (v && v.layout) LAYOUTS[code] = v.layout; else delete LAYOUTS[code];
+      const firstLive = !(code in NETLIVE);
+      NETLIVE[code] = v;
+      if ($("cardSlot") && (cardWait || (lsig !== oldsig && $("case")))) { cardWait = false; showCard(false); }
+      renderLive(); renderNight(); renderStuStage(v); checkAlert(code, v); renderBoard(v);
     });
   }).catch(e => { liveErr = "접속 준비에 실패했습니다 (" + ((e && e.code) || "network") + "). 새로고침해 보세요."; renderLive(); });
 }
@@ -179,13 +184,13 @@ let stuStageAt = null, stuStageDismissed = null;
 function renderStuStage(v) {
   if ($("viewStudent").hidden && $("viewBoard").hidden) return;
   const st = v && v.stage;
-  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip")) {
+  if (st && (st.k === "news" || st.k === "frame" || st.k === "tip" || st.k === "layout")) {
     const sk = st.at + (st.why ? "|w" : "");
     if (stuStageDismissed === st.at || stuStageAt === sk) return;
     const fresh = stuStageAt === null || String(stuStageAt).split("|")[0] !== String(st.at);
     stuStageAt = sk; hideSplash();
     if (st.k === "tip" && fresh) { try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch {} }
-    $("stageInner").innerHTML = st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
+    $("stageInner").innerHTML = st.k === "layout" ? layoutStage(st.D || [], st.J || [], $("viewStudent").hidden ? null : +$("seat").value) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "tip" ? `<div class="kicker tipkick">ANONYMOUS TIP · 익명 제보</div><h2>출처를 알 수 없는 제보가 들어왔습니다</h2><div class="tipbody">"${esc(st.text || "")}"</div>${st.why ? `<div class="item"><small>진위 공개</small>${esc(st.why)}</div>` : `<p class="muted" style="margin:0">이 제보, 믿어도 될까요? 출처·시기·숫자를 따져 먼저 반박하는 구역이 +2점!</p>`}<button class="primary" id="stageClose" style="justify-self:end">닫기</button>` : st.k === "frame" ? FRAME_STAGE() : `<div class="kicker">DAY ${v.day} · MORNING NEWS</div><h2>아침이 밝았습니다</h2><div class="items">${(st.items || []).map(([k, x]) => `<div class="item"><small>${esc(k)}</small>${esc(x)}</div>`).join("")}</div><button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
     $("stage").hidden = false;
     $("stageClose").onclick = () => { stuStageDismissed = st.at; stuStageAt = null; $("stage").hidden = true; };
   } else if (stuStageAt !== null) { stuStageAt = null; $("stage").hidden = true; }
@@ -349,6 +354,7 @@ function renderJudge() {
   if (kind === "d") {
     const debaters = R.D[di].filter(x => x !== seat);
     extra = `<div class="jrow"><span>거짓 근거 적발</span><div class="jstep"><button type="button" data-l="-1">−</button><b>${st.lies}</b><button type="button" data-l="1">+</button></div></div>
+      <div class="jrow col"><span>발언한 사람 <small class="muted">(한 번이라도 말하면 누르기)</small></span><div class="jmvp jspoke">${debaters.map(x => `<button type="button" class="${(st.spoke || []).includes(x) ? "on" : ""}" data-sp="${x}">${x}</button>`).join("")}</div></div>
       <div class="jrow col"><span>오늘의 MVP</span><div class="jmvp">${debaters.map(x => `<button type="button" class="${st.mvp === x ? "on" : ""}" data-m="${x}">${x}</button>`).join("")}</div></div>`;
   } else {
     extra = `<div class="jrow col"><span>내 판정</span><div class="jwin">${[["pro", "찬성 승리"], ["con", "반대 승리"], ["draw", "무승부"]].map(([v, t]) => `<button type="button" class="${st.win === v ? "on" : ""}" data-w="${v}">${t}</button>`).join("")}</div></div>`;
@@ -361,12 +367,13 @@ function renderJudge() {
     <p class="nmsg">${esc(judgeMsg || (st.sent ? `보고 완료 ${hhmm(st.sent)} · 바꾸면 다시 보고하세요` : "판정 시간에 보고 버튼을 누르세요."))}</p></div>`;
   box.querySelectorAll(".jchk").forEach(b => b.onclick = () => { st[b.dataset.s][+b.dataset.i] ^= 1; save2(); judgeMsg = ""; renderJudge(); });
   box.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { st.lies = Math.max(0, Math.min(3, st.lies + +b.dataset.l)); save2(); renderJudge(); });
+  box.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const x = +b.dataset.sp, a = st.spoke || []; st.spoke = a.includes(x) ? a.filter(y => y !== x) : [...a, x]; save2(); renderJudge(); });
   box.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { st.mvp = st.mvp === +b.dataset.m ? null : +b.dataset.m; save2(); renderJudge(); });
   box.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { st.win = b.dataset.w; save2(); renderJudge(); });
   $("judgeSend").onclick = async () => {
     if (kind === "p" && !st.win) { judgeMsg = "내 판정(찬성 승리/반대 승리/무승부)을 먼저 고르세요."; renderJudge(); return; }
     judgeMsg = "보내는 중…"; renderJudge();
-    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0 } : { ppro: P, pcon: Q, win: st.win };
+    const rep = kind === "d" ? { pro: P, con: Q, lies: st.lies, mvp: st.mvp || 0, spoke: (st.spoke || []).join(",") } : { ppro: P, pcon: Q, win: st.win };
     try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/${kind === "d" ? "j" : "p"}${e.day}/s${seat}`, Object.assign({ uid: NET.user.uid, k: "j", target: seat, t: NET.stamp() }, rep)); st.sent = Date.now(); save2(); judgeMsg = ""; }
     catch (err) { judgeMsg = "전송 실패. 다시 눌러 주세요."; }
     renderJudge();
@@ -387,7 +394,7 @@ function teacherJudgeWatch() {
       const r = v["s" + js]; if (!r) return;
       const cur = (S.judge[d] || {})[di];
       if (cur && cur.pt && cur.pt >= (+r.t || 0)) return;
-      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, pt: +r.t || Date.now(), phone: true };
+      (S.judge[d] = S.judge[d] || {})[di] = { pro: Math.max(0, Math.min(3, +r.pro || 0)), con: Math.max(0, Math.min(3, +r.con || 0)), lies: Math.max(0, Math.min(3, +r.lies || 0)), mvp: +r.mvp || null, spoke: String(r.spoke || "").split(",").filter(Boolean).map(Number), pt: +r.t || Date.now(), phone: true };
       changed = true;
     });
     if (changed) { save(); chime(1); if (step === "debate") renderStep(); renderBar(); }
@@ -508,7 +515,7 @@ function renderSecret() {
   const c = C(), R = roles(c), caught = caughtAll(), D = S.dodo;
   const pend = D && D.offers ? D.offers.find(x => x[2] == null) : null;
   P.innerHTML = `<div class="secin"><b class="sk">교사 전용 · 전자칠판에는 나오지 않습니다</b>
-    <div><span class="sl">마피아</span>${R.mafia.map(s => `<span class="chip ${caught.includes(s) ? "gone" : "maf"}">${s}번 · ${districtOf(c.n, s) + 1}구역${caught.includes(s) ? " (체포)" : ""}</span>`).join("")}</div>
+    <div><span class="sl">마피아</span>${R.mafia.map(s => `<span class="chip ${caught.includes(s) ? "gone" : "maf"}">${s}번 · ${districtOfC(c, s) + 1}구역${caught.includes(s) ? " (체포)" : ""}</span>`).join("")}</div>
     <div><span class="sl">심판</span>${R.judges.map((s, i) => `<span class="chip">${i + 1}구역 ${s}번</span>`).join("")}</div>
     <div><span class="sl">도도새</span>${D && D.seat ? `<span class="chip dodo">${D.seat}번 (DAY ${D.day}부터)${dodoWon() ? " · 승리" : ""}</span>` : pend ? `<span class="chip">제안 중: ${pend[1]}번 (응답 대기)</span>` : `<span class="muted">아직 없음 (DAY 3 밤부터 제안)</span>`}</div>
     <button class="sm" id="secretHide">숨기기</button></div>`;
@@ -561,3 +568,35 @@ async function doInstall() {
 ["installBtn", "installBtn2"].forEach(id => { const b = $(id); if (b) b.onclick = doInstall; });
 updateInstallUI();
 if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+
+// ---------------- teacher: district / seat layout (출석번호 순 · 무작위 · 직접 배치) ----------------
+let lyPick = null;
+function layoutUI() {
+  const c = C(), D = districtsFor(c), R = roles(c), locked = S.day > 1 || S.ended;
+  return `<div class="layout"><div class="lyhead"><b>구역·자리 배치</b><span class="lymode">${S.layout ? "직접·무작위 배치" : "출석번호 순 (기본)"}</span>
+    ${locked ? `<span class="muted" style="font-size:.85rem">DAY 2부터는 바꿀 수 없습니다 (역할이 바뀌므로)</span>` : `<button class="sm" id="lyRand">무작위 배치</button><button class="sm" id="lyReset" ${S.layout ? "" : "disabled"}>출석번호 순으로</button>`}
+    <button class="sm gold" id="lyShow">배치표 띄우기 (칠판·휴대폰)</button></div>
+    <div class="lygrid">${D.map((m, di) => `<div class="lycol"><h4>${di + 1}구역 <span>${m.length}명</span></h4><div class="lyseats">${m.map(s => `<button type="button" class="lyseat ${lyPick === s ? "on" : ""} ${R.judges.includes(s) ? "jd" : ""}" data-s="${s}" ${locked ? "disabled" : ""}>${s}${R.judges.includes(s) ? "<small>심판</small>" : ""}</button>`).join("")}</div></div>`).join("")}</div>
+    ${locked ? "" : `<p class="muted lyhint">${lyPick ? `${lyPick}번 선택됨 · 바꿀 학생 번호를 누르세요 (같은 번호를 다시 누르면 취소)` : "번호 두 개를 차례로 누르면 두 학생의 구역이 서로 바뀝니다. 학생들이 카드를 받기 전에 확정하세요. 심판은 배치에 따라 다시 정해집니다."}</p>`}</div>`;
+}
+function setLayout(D) { snap(); S.layout = D; if (D) LAYOUTS[S.code] = D; else delete LAYOUTS[S.code]; save(); schedulePublish(); renderStep(); renderBar(); }
+function bindLayout() {
+  const c = C();
+  if ($("lyRand")) $("lyRand").onclick = () => { const sizes = districts(c.n).map(d => d.length), all = shuffle([...Array(c.n)].map((_, i) => i + 1), Math.random); let k = 0; lyPick = null; setLayout(sizes.map(z => all.slice(k, k += z).sort((a, b) => a - b))); };
+  if ($("lyReset")) $("lyReset").onclick = () => { lyPick = null; setLayout(null); };
+  if ($("lyShow")) $("lyShow").onclick = () => { stageLive = { k: "layout", D: districtsFor(c), J: roles(c).judges, at: NET.now() }; schedulePublish(); showStage(layoutStage(districtsFor(c), roles(c).judges, null) + `<button class="primary" id="stageClose" style="justify-self:end">닫기</button>`); };
+  document.querySelectorAll(".lyseat").forEach(b => b.onclick = () => {
+    const s = +b.dataset.s;
+    if (!lyPick || lyPick === s) { lyPick = lyPick === s ? null : s; renderStep(); return; }
+    const D = districtsFor(c).map(d => d.slice()), a = lyPick; lyPick = null;
+    const ia = D.findIndex(d => d.includes(a)), ib = D.findIndex(d => d.includes(s));
+    if (ia === ib) { renderStep(); return; }
+    D[ia][D[ia].indexOf(a)] = s; D[ib][D[ib].indexOf(s)] = a; D.forEach(d => d.sort((x, y) => x - y));
+    setLayout(D);
+  });
+}
+function layoutStage(D, J, mine) {
+  return `<div class="kicker">SEATING · 구역 배치표</div><h2>${mine ? `나는 <span style="color:var(--gold)">${D.findIndex(d => d.includes(mine)) + 1}구역</span>` : "우리 반 구역 배치"}</h2>
+    <div class="lystage">${D.map((m, di) => `<div class="lycol ${mine && m.includes(mine) ? "me" : ""}"><h4>${di + 1}구역</h4><div class="lyseats">${m.map(s => `<span class="lyseat ${s === mine ? "on" : ""} ${(J || []).includes(s) ? "jd" : ""}">${s}${(J || []).includes(s) ? "<small>심판</small>" : ""}</span>`).join("")}</div></div>`).join("")}</div>
+    <p class="muted" style="margin:0">같은 구역끼리 모여 앉으세요. 심판은 구역마다 1명입니다.</p>`;
+}

@@ -29,6 +29,17 @@ html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id=
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.layout { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; margin: 6px 0 }
+.lyhead { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center } .lyhead b { font-size: 1.05rem } .lymode { color: var(--gold); font-size: .88rem }
+.lygrid, .lystage { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.lycol { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #15161E } .lycol h4 { margin: 0 0 6px; display: flex; justify-content: space-between; color: var(--gold) } .lycol h4 span { color: var(--muted); font-size: .8rem }
+.lycol.me { border-color: var(--gold); background: #2A2312 }
+.lyseats { display: flex; flex-wrap: wrap; gap: 6px }
+.lyseat { min-width: 44px; min-height: 40px; border-radius: 10px; border: 1px solid var(--line); background: #1D1F2A; color: var(--paper); font-weight: 700; display: inline-grid; place-items: center; padding: 2px 6px; line-height: 1.05 }
+.lyseat small { font-size: .6rem; color: var(--judge, #4CC08F) } .lyseat.jd { border-color: #2E6B55 }
+.lyseat.on { background: var(--gold); color: #13141B; border-color: var(--gold) } .lyhint { margin: 0; font-size: .85rem }
+.stage .lystage .lyseat { min-width: 52px; min-height: 46px; font-size: 1.1rem }
+body.boardmode .stage .lystage { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) } body.boardmode .stage .lyseat { min-width: 70px; min-height: 60px; font-size: 1.6rem }
 .installbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: .9rem; white-space: nowrap }
 .installbtn::before { content: "⤓ " }
 .installlink { margin-top: 10px; width: 100%; min-height: 46px; border: 1px dashed var(--gold); border-radius: 12px; background: #1E1A10; color: var(--gold); font-weight: 700 }
@@ -247,6 +258,19 @@ js = R(js, '  remain = phases[pi][1]; if (typeof stageLive', '  remain = phases[
 js = R(js, '${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}', '${head("setup", `${CLASSES[cls]} 시즌 준비`, "반 인원과 시즌 길이를 정하고 코드를 학생들에게 보여 주세요.")}${setupGuide()}')
 js = R(js, 'fillSelect($("tN"), 12, 30, c.n, v => `${v}명`);', 'bindSetupGuide(); fillSelect($("tN"), 12, 30, c.n, v => `${v}명`);')
 js = R(js, 'NET.onAuth(() => { renderAuth();', 'NET.onAuth(() => { renderAuth(); if (step === "setup" && booted) renderStep();')
+# custom district layout
+js = R(js, 'const districtOf = (n, seat) => districts(n).findIndex(d => d.includes(seat));', 'const districtOf = (n, seat) => districts(n).findIndex(d => d.includes(seat));\nconst LAYOUTS = {};\nconst districtsFor = c => LAYOUTS[c.code] || districts(c.n);\nconst districtOfC = (c, seat) => districtsFor(c).findIndex(d => d.includes(seat));')
+js = R(js, 'const N = c.n, D = districts(N), r', 'const N = c.n, D = districtsFor(c), r')
+js = js.replace('districtOf(c.n, ', 'districtOfC(c, ')
+js = js.replace('${m[0]}~${m[m.length - 1]}번', '${m.join("·")}번')
+js = R(js, '(${D[di][0]}~${D[di][D[di].length - 1]}번)', '(${D[di].join("·")}번)')
+js = R(js, 'store.set(skey(cls), S); } history = []; }', 'store.set(skey(cls), S); } history = []; CLASSES.forEach((_, i) => { const st = store.get(skey(i)), pc = st && parseCode(st.code); if (pc) { if (st.layout) LAYOUTS[pc.code] = st.layout; else delete LAYOUTS[pc.code]; } }); }')
+js = R(js, '<ul class="todo"><li>학생들은 시즌 내내 같은 출석번호를 씁니다. 구역은 출석번호 순으로 자동 편성됩니다.</li>', '${layoutUI()}<ul class="todo"><li>학생들은 시즌 내내 같은 출석번호를 씁니다. 구역은 기본으로 출석번호 순이고, 위에서 무작위·직접 배치로 바꿀 수 있습니다.</li>')
+js = R(js, 'bindSetupGuide(); fillSelect(', 'bindSetupGuide(); bindLayout(); fillSelect(')
+js = R(js, 'stage: stageLive, tipUsed:', 'stage: stageLive, layout: S.layout || null, tipUsed:')
+js = R(js, '${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}', '${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}${x.spoke ? (() => { const miss = debaters.filter(s => !x.spoke.includes(s)); return `<br><span class="${miss.length ? "warn" : "muted"}" style="font-size:.82rem">발언 ${debaters.length - miss.length}/${debaters.length}${miss.length ? ` · 아직: ${miss.join(", ")}번` : " · 모두 발언"}</span>`; })() : ""}')
+# card waits for live layout
+js = R(js, 'function showCard(open) {\n  const c = parseCode($("code").value); if (!c) return;', 'function showCard(open) {\n  const c = parseCode($("code").value); if (!c) return;\n  if (NET.mode !== "local" && !(c.code in NETLIVE)) { cardWait = true; $("cardSlot").className = "empty"; $("cardSlot").innerHTML = `<div><strong style="font-size:1.3rem">선생님 화면과 연결 중…</strong><br>잠시 후 카드가 나타납니다. 선생님이 로그인하고 진행을 시작해야 합니다.</div>`; return; }')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)
