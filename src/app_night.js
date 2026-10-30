@@ -493,7 +493,7 @@ function renderBoard(e) {
     <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
     <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
     ${boardVoteHTML(e)}<div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${sfxButton()} ${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
-  boardVerdict(e); boardSounds(e);
+  boardVerdict(e); boardSounds(e); bgmUpdate(e);
 }
 setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
 function boardVerdict(e) {
@@ -537,6 +537,7 @@ function setupGuide() {
       <li><span class="n">2</span><div><b>선생님 로그인 확인</b><small>${ok ? `로그인됨 · ${esc(NET.user && NET.user.email || "로컬 모드")}` : "위쪽 '선생님 로그인'을 눌러 주세요. 로그인해야 학생 휴대폰과 연동됩니다."}</small></div><span class="${ok ? "okc" : "noc"}">${ok ? "완료" : "필요"}</span></li>
       <li><span class="n">3</span><div><b>전자칠판 화면 열기</b><small>새 창이 뜨면 전자칠판 쪽으로 끌어다 놓으세요.</small></div><button class="sm gold" id="sgBoard">전자칠판 화면 열기</button></li>
       <li><span class="n">4</span><div><b>전자칠판 창에서 F11</b><small>전체 화면이 됩니다. 진행은 노트북에서만 하세요.</small></div><span class="kbd">F11</span></li>
+      <li><span class="n">5</span><div><b>전자칠판 창 왼쪽 아래 '소리 켜기'</b><small>효과음과 배경음악(밤·아침 뉴스·검색·재판·시상식)이 나옵니다. 옆의 − / +로 음악 크기를 조절하세요.</small></div><span class="kbd">♪</span></li>
     </ol></div>`;
 }
 function bindSetupGuide() {
@@ -720,19 +721,53 @@ const SFX = (() => {
     if (start && !amb) { amb = setInterval(() => { if (Math.random() < .7) { const f = 4200 + Math.random() * 600; for (let i = 0; i < 3; i++) tone(f, i * .06, .04, "sine", .025); } }, 900); }
     if (!start && amb) { clearInterval(amb); amb = null; }
   }
-  return { play(k) { if (!on) return; try { ctx().resume(); P[k] && P[k](); } catch {} }, ambience, enable(v) { on = v; try { if (v) ctx().resume(); } catch {} if (!v) ambience(false); store.set("ssi-sfx", v); }, get on() { return on; } };
+  return { play(k) { if (!on) return; try { ctx().resume(); if (k !== "vote" && typeof BGM !== "undefined") BGM.duck(k === "roll" ? 2600 : 1600); P[k] && P[k](); } catch {} }, ambience, enable(v) { on = v; try { if (v) ctx().resume(); } catch {} if (!v) ambience(false); store.set("ssi-sfx", v); }, get on() { return on; } };
 })();
 let sfxPhase = null, sfxStage = null;
 function boardSounds(e) {
   if ($("viewBoard").hidden || !e) return;
   const pk = `${e.day}|${e.pi}`;
   if (sfxPhase !== null && pk !== sfxPhase) SFX.play(e.phase === "밤" ? "night" : e.phase === "아침 뉴스" ? "dawn" : "phase");
-  sfxPhase = pk; SFX.ambience(e.phase === "밤");
+  sfxPhase = pk; SFX.ambience(false);
   const st = e.stage, sk = st ? `${st.k}|${st.at}` : null;
   if (sk && sk !== sfxStage && sfxStage !== null) { if (st.k === "tip") SFX.play("tip"); else if (st.k === "cer") SFX.play(st.step === 0 || cerSteps(st.data)[st.step] === "award" ? "fanfare" : "phase"); }
   sfxStage = sk || (sfxStage === null ? "" : sfxStage);
 }
-function sfxButton() { return `<button type="button" class="bsfx ${SFX.on ? "on" : ""}" id="bSfx">${SFX.on ? "소리 켜짐" : "소리 켜기"}</button>`; }
-document.addEventListener("click", ev => { if (ev.target && ev.target.id === "bSfx") { SFX.enable(!SFX.on); ev.target.className = "bsfx" + (SFX.on ? " on" : ""); ev.target.textContent = SFX.on ? "소리 켜짐" : "소리 켜기"; if (SFX.on) SFX.play("phase"); } });
+function sfxButton() { return `<button type="button" class="bsfx ${SFX.on ? "on" : ""}" id="bSfx">${SFX.on ? "소리 켜짐" : "소리 켜기"}</button>${bgmControls()}`; }
+document.addEventListener("click", ev => { if (ev.target && ev.target.id === "bSfx") { SFX.enable(!SFX.on); ev.target.className = "bsfx" + (SFX.on ? " on" : ""); ev.target.textContent = SFX.on ? "소리 켜짐" : "소리 켜기"; if (SFX.on) SFX.play("phase"); bgmUpdate(NETLIVE[boardSubCode]); } });
 
 function tActive() { return !$("viewTeacher").hidden; }
+
+// ================= 전자칠판 배경음악 =================
+const BGM = (() => {
+  const TR = { night: ["audio/night.mp3", true], news: ["audio/news.mp3", false], search: ["audio/search.mp3", true], trial: ["audio/trial.mp3", true], award: ["audio/award.mp3", true] };
+  const els = {}; let cur = null, vol = store.get("ssi-bgm-vol") ?? 0.5, duck = 1, fadeT = null;
+  const el = k => { if (!els[k]) { const a = new Audio(TR[k][0]); a.loop = TR[k][1]; a.preload = "auto"; a.volume = 0; els[k] = a; } return els[k]; };
+  function ramp(a, to, ms, done) { const from = a.volume, t0 = performance.now(); const step = () => { const p = Math.min(1, (performance.now() - t0) / ms); a.volume = Math.max(0, Math.min(1, from + (to - from) * p)); if (p < 1) requestAnimationFrame(step); else if (done) done(); }; requestAnimationFrame(step); }
+  function play(k) {
+    if (k === cur) return;
+    const prev = cur ? els[cur] : null; cur = k;
+    if (prev) ramp(prev, 0, 1200, () => { prev.pause(); });
+    if (!k || !SFX.on) return;
+    const a = el(k); try { a.currentTime = 0; } catch {} a.volume = 0; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); ramp(a, vol * duck, 1500);
+  }
+  return {
+    play, stop() { play(null); },
+    setVol(v) { vol = Math.max(0, Math.min(1, v)); store.set("ssi-bgm-vol", vol); if (cur && els[cur]) els[cur].volume = vol * duck; },
+    get vol() { return vol; },
+    duck(ms = 1600) { if (!cur || !els[cur]) return; const a = els[cur]; duck = 0.35; ramp(a, vol * duck, 200); clearTimeout(fadeT); fadeT = setTimeout(() => { duck = 1; if (els[cur]) ramp(els[cur], vol, 600); }, ms); },
+    get cur() { return cur; }
+  };
+})();
+function bgmFor(e) {
+  if (!e) return null;
+  if (e.stage && e.stage.k === "cer") return "award";
+  if (e.phase === "밤" && e.day > 0) return "night";
+  if (e.phase === "아침 뉴스") return "news";
+  if (e.phase === "검색") return "search";
+  if (e.phase === "광장 재판") return "trial";
+  return null;
+}
+function bgmUpdate(e) { if ($("viewBoard").hidden) return; const k = SFX.on ? bgmFor(e) : null; BGM.play(k); }
+function bgmControls() { return `<span class="bvol"><button type="button" data-bv="-0.1" aria-label="음악 작게">−</button><span>음악 ${Math.round(BGM.vol * 10)}</span><button type="button" data-bv="0.1" aria-label="음악 크게">+</button></span>`; }
+document.addEventListener("click", ev => { const b = ev.target && ev.target.closest && ev.target.closest("[data-bv]"); if (!b) return; BGM.setVol(BGM.vol + +b.dataset.bv); const s = b.parentElement.querySelector("span"); if (s) s.textContent = `음악 ${Math.round(BGM.vol * 10)}`; });
