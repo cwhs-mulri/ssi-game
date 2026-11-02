@@ -19,7 +19,7 @@ def R(s, a, b, cnt=1):
 # ---- HTML ----
 html = R(html, '<script type="application/json" id="liveData">%%LIVE%%</script>\n', '')
 html = R(html, '</section>\n    <div class="student">', '</section>\n    <section id="nightBox" aria-live="polite" hidden></section>\n    <div class="student">')
-html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="voteBox" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
+html = R(html, '<section id="nightBox" aria-live="polite" hidden></section>', '<section id="nightBox" aria-live="polite" hidden></section>\n    <section id="voteBox" hidden></section>\n    <section id="pvoteBox" hidden></section>\n    <section id="tipBox" hidden></section>\n    <section id="judgeBox" hidden></section>')
 html = R(html, '<br>왼쪽에 코드와 출석번호를 입력하세요.', '<br>접속 화면에서 코드와 출석번호를 입력하세요.')
 html = R(html, '<div class="steps-nav" id="stepsNav"', '<div class="secret" id="secretPanel" hidden></div>\n    <div class="steps-nav" id="stepsNav"')
 html = R(html, '<main id="viewTeacher" class="teacher" hidden>', '<main id="viewBoard" class="eboard" hidden></main>\n  <main id="viewTeacher" class="teacher" hidden>')
@@ -29,6 +29,10 @@ html = R(html, '<div class="stage" id="stage" hidden>', '<div class="splash" id=
 html = R(html, '<button class="sm" id="syncBtn" aria-pressed="false">학생 화면 연동</button>', '<button class="sm" id="syncBtn">선생님 로그인</button>')
 html = R(html, '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>', '<button class="sm" id="syncBtn">선생님 로그인</button><span id="syncMsg"></span></span>\n        <button class="sm" id="boardBtn" title="새 창을 전자칠판 화면으로 옮기세요">전자칠판 화면 열기</button><button class="sm danger" id="secretBtn" aria-pressed="false">비밀 명단</button>')
 css = '''
+.pvp { border-color: #2A3A55 !important; background: #0E1626 !important } .pvp h3 { color: var(--pro) !important }
+.voteb.pv.pro { border-color: #2A4A6A; background: #13233A } .voteb.pv.con { border-color: #6A3E22; background: #2E1C10 } .voteb.pv.on.pro { background: var(--pro); color: #0B1220 } .voteb.pv.on.con { background: var(--con); color: #1E1006 }
+.bvrow i.pro { background: linear-gradient(90deg, #2A5A8A, #63A9E6) } .bvrow i.con { background: linear-gradient(90deg, #8A4A22, #EE9255) } .bvhead.pv { color: var(--paper) } .bvhead .pro { color: var(--pro) } .bvhead .con { color: var(--con) }
+.tallyin .chip.pro { border-color: #2A4A6A } .tallyin .chip.con { border-color: #6A3E22 }
 .jointopt { flex-direction: row !important; align-items: center } .jointopt input { width: 18px; height: 18px; vertical-align: middle; margin-right: 6px } .jjoint button { flex: 1 1 140px; min-height: 46px }
 .bvol { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; position: relative; z-index: 2 } .bvol button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #3A3D52; background: #15161E; color: #A2A3B5; padding: 0 } .bvol span { color: #8E90A6; font-size: 13px }
 .votep { border: 1px solid #5A2520; background: #1A0E10; border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px } .votep h3 { margin: 0; color: #FF8A78 } .votep p { margin: 0; font-size: .9rem; color: var(--muted); word-break: keep-all } .votep .nmsg { color: var(--paper); font-weight: 700 }
@@ -219,13 +223,13 @@ js = R(js, '''  const e = c && liveFor(c.code);
   const strip = $("liveStrip");''')
 js = R(js, "if (!e) { box.innerHTML = `<div class=\"live-wait\">${c ?", "if (!e) { box.innerHTML = `<div class=\"live-wait\">${liveErr ? esc(liveErr) + \"<br>\" : \"\"}${c ?")
 js = R(js, '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n}',
-          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge(); renderVote();\n}')
+          '    if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }\n  }\n  renderNight(); renderTipBox(); renderDodo(); renderJudge(); renderVote(); renderPVote();\n}')
 js = R(js, 'liveFlash = ""; showCard(false); renderLive();', 'liveFlash = ""; showCard(false); watchLive(c.code); renderLive();')
 # teacher hooks
-js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); teacherTVWatch(); syncBoardWin();\n  $("classTabs").innerHTML =')
+js = R(js, '  $("classTabs").innerHTML =', '  teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); teacherTVWatch(); teacherPVWatch(); syncBoardWin();\n  $("classTabs").innerHTML =')
 js = R(js, '$("tNext").onclick = () => { if (pi < phases.length - 1) {', '$("tNext").onclick = () => { if (phases[pi][0] === "밤") applyTally(false); if (pi < phases.length - 1) {')
 # boot
-js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; tvKey = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
+js = re.sub(r'setSync\(syncOn \? "on" : "", syncOn \?[^\n]*\n', 'NET.onAuth(() => { renderAuth(); votesKey = undefined; tipKey = undefined; dodoKey = undefined; jKey2 = undefined; tvKey = undefined; pvKey = undefined; teacherWatch(); teacherTipWatch(); teacherDodoWatch(); teacherJudgeWatch(); if (step === "night") renderTally(); if (NET.isTeacher() && booted) schedulePublish(); });\n', js, count=1)
 assert 'NET.onAuth' in js and 'syncOn' not in js and 'LIVE.' not in js and 'getArtifact' not in js, [k for k in ['syncOn','LIVE.','getArtifact'] if k in js]
 
 # teacher fullscreen news mirrored to students
@@ -255,7 +259,7 @@ js = R(js, '${hit ? "마피아 체포" : "시민, 누명"}', '${hit ? "마피아
 js = R(js, '`${s}번은 시민이었습니다. 누명이었습니다.`', '(S.dodo && S.dodo.seat === s && S.dodo.day <= d - 1 ? `${s}번은 사실 도도새였습니다! 재판대에 오르는 데 성공해 도도새가 승리했습니다.` : `${s}번은 시민이었습니다. 누명이었습니다.`)')
 # judge phone reports
 js = R(js, '<div class="result">${pz.win ? `광장 대표토론:', '<div id="plazaRep" class="tally"></div>\n      <div class="result">${pz.win ? `광장 대표토론:')
-js = R(js, '["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"', 'renderPlazaRep();\n    ["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"')
+js = R(js, '["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"', 'renderPlazaRep(); renderPVoteCtl(); teacherPVWatch(); ["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change", () => { if (!pvState()) renderPVoteCtl(); }));\n    ["pP1", "pP2", "pC1", "pC2"].forEach(id => $(id).addEventListener("change"')
 js = R(js, '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}</span></div>', '<div class="rowx"><button class="sm gold" data-j="${di}">저장</button><span class="out">${ww}${x.phone ? ` <span class="muted" style="font-size:.78rem">· 심판 휴대폰 보고</span>` : ""}</span></div>')
 # swipe layout: after joining go to the card slide; initial slide on boot
 js = R(js, 'if (window.matchMedia("(max-width: 760px)").matches) $("cardSlot").scrollIntoView({ behavior: "smooth" });', 'goSlide("card");')
@@ -304,6 +308,10 @@ js = R(js, 'bindSetupGuide(); bindLayout();', 'bindSetupGuide(); bindLayout(); b
 js = R(js, '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>', '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${jointOn() ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}')
 js = R(js, '    $("frameBtn").onclick = showFrame;', '    $("frameBtn").onclick = showFrame; if ($("jointBtn")) $("jointBtn").onclick = () => { stageLive = { k: "joint", at: NET.now() }; schedulePublish(); showStage(JOINT_FRAME()); };')
 js = R(js, 'stage: stageLive, layout:', 'joint: jointOn(), stage: stageLive, layout:')
+# plaza audience vote
+js = R(js, '<div id="plazaRep" class="tally"></div>', '<div id="plazaRep" class="tally"></div><div id="pvoteCtl" class="tally"></div>')
+js = R(js, 'vote: p[4] === "trial" && tvState()', 'pvote: p[4] === "plaza" && pvState() ? { day: S.day, cands: pvState().cands, np: pvState().np, open: pvState().open, counts: pvState().counts || {}, n: pvState().n || 0, at: pvState().at } : null, vote: p[4] === "trial" && tvState()')
+js = R(js, '"광장 대표토론": ["대표들의 토론을 듣고, 가장 설득력 있던 대표를 골라 두세요.", "down"]', '"광장 대표토론": ["대표들의 토론을 듣고, 투표가 열리면 가장 설득력 있던 대표에게 휴대폰으로 투표하세요.", "card"]')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)

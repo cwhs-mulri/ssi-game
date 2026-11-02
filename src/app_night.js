@@ -426,7 +426,7 @@ const swipe = (() => {
   const mk = k => { const d = document.createElement("div"); d.className = "slide"; d.dataset.k = k; wrap.appendChild(d); return d; };
   const sNow = mk("now"), sCard = mk("card"), sJoin = mk("join");
   const joinSec = $("joinForm").closest("section"), cardSec = $("cardSlot").closest("section"), stu = view.querySelector(".student");
-  ["liveBox", "voteBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
+  ["liveBox", "voteBox", "pvoteBox", "nightBox", "tipBox", "judgeBox"].forEach(id => sNow.appendChild($(id)));
   const toCard = document.createElement("button"); toCard.type = "button"; toCard.className = "slidelink"; toCard.textContent = "내 카드 보기 →"; toCard.onclick = () => goSlide("card"); sNow.appendChild(toCard);
   sCard.appendChild(cardSec); sJoin.appendChild(joinSec);
   const hint = document.createElement("p"); hint.className = "muted swipehint"; hint.textContent = "← 옆으로 넘겨서 다른 화면을 볼 수 있어요 →";
@@ -451,7 +451,7 @@ swipe.wrap.addEventListener("scroll", () => { clearTimeout(swT); swT = setTimeou
 try { const ro = new ResizeObserver(() => fitSlide()); swipe.slides.forEach(s => ro.observe(s)); } catch {}
 window.addEventListener("resize", () => { markTabs(); fitSlide(); if (narrow()) swipe.wrap.scrollTo({ left: slideCur * swipe.wrap.clientWidth }); });
 // new actions appear -> badge the 지금 tab
-try { const mo = new MutationObserver(() => { if (["nightBox", "voteBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "voteBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
+try { const mo = new MutationObserver(() => { if (["nightBox", "voteBox", "pvoteBox", "tipBox", "judgeBox"].some(id => !$(id).hidden)) badge("now"); }); ["nightBox", "voteBox", "pvoteBox", "tipBox", "judgeBox"].forEach(id => mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] })); } catch {}
 
 // ---------------- phone alert: 도도새 주의보 (morning after a 도도새 appears) ----------------
 let alertTimer = null;
@@ -495,7 +495,7 @@ function renderBoard(e) {
     <div class="btop"><div><div>${esc(e.cls)} · DAY ${e.day}/${e.days}${e.day === 1 ? " 연습" : ""}</div><div class="btopic">${esc(T.name)} — ${esc(T.claim)}</div></div>${qr}</div>
     <div class="bmain"><div class="bphase">${esc(e.phase)}</div><div class="bclock ${r <= 10 && e.running ? "low" : ""}" id="bClock">${fmt(r)}${e.running ? "" : `<small>❚❚</small>`}</div></div>
     <div class="prog bprog">${[...Array(e.total)].map((_, i) => `<i class="${i < e.pi ? "done" : i === e.pi ? "on" : ""}"></i>`).join("")}</div>
-    ${boardVoteHTML(e)}<div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${sfxButton()} ${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
+    ${boardVoteHTML(e)}${boardPVoteHTML(e)}<div class="bmsg">${esc(msg)} <span class="phone ${pc}">${pt}</span></div>${extra}<div class="bfoot">${sfxButton()} ${esc(c.code)} · ${hhmm(e.updated)} 업데이트</div></div>`;
   boardVerdict(e); boardSounds(e); bgmUpdate(e);
 }
 setInterval(() => { const el = $("bClock"); if (!el || $("viewBoard").hidden) return; const e = NETLIVE[boardSubCode]; if (!e || !e.running) return; const r = liveRemain(e); el.textContent = fmt(r); el.classList.toggle("low", r <= 10); }, 1000);
@@ -783,3 +783,67 @@ const JOINT_FRAME = () => `<div class="kicker">합의안 발표 틀</div><h2>찬
 function jointOn() { return !!S && S.joint !== false; }
 function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${jointOn() ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
 function bindJointToggle() { const b = $("jointOn"); if (b) b.onchange = () => { snap(); S.joint = b.checked; save(); buildPhases(); restoreRun(); renderAllT(); schedulePublish(); }; }
+
+// ================= 광장 대표토론: 청중 휴대폰 투표 (청중상) =================
+let pvSub = null, pvKey = null;
+function pvState() { return S.pvote && S.pvote.day === S.day ? S.pvote : null; }
+function teacherPVWatch() {
+  const pv = pvState(), key = NET.isTeacher() && tActive() && pv ? `${S.code}|${S.day}` : null;
+  if (key === pvKey) return;
+  pvKey = key; if (pvSub) { pvSub(); pvSub = null; }
+  if (!key) return;
+  const code = S.code;
+  pvSub = NET.watch(`${roomPath(code)}/votes/a${S.day}`, v => {
+    const p = pvState(); if (!p || S.code !== code || !p.open) return;
+    const counts = {}; let n = 0;
+    Object.entries(v || {}).forEach(([k, x]) => { const s = +k.slice(1); if (x && p.cands.includes(+x.target) && +x.target !== s) { counts["s" + x.target] = (counts["s" + x.target] || 0) + 1; n++; } });
+    p.counts = counts; p.n = n; save(); renderPVoteCtl(); schedulePublish();
+  });
+}
+function pvSide(p, s) { return p.cands.indexOf(s) < (p.np ?? 2) ? "pro" : "con"; }
+function renderPVoteCtl() {
+  const el = $("pvoteCtl"); if (!el) return;
+  const reps = ["pP1", "pP2", "pC1", "pC2"].map(x => $(x) ? +$(x).value || null : null), p = pvState();
+  if (!p) {
+    const ok = reps.filter(Boolean).length >= 2;
+    el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">청중 휴대폰 투표 (청중상)</div><span class="muted">대표 토론이 끝나면 투표를 여세요. 대표가 아닌 학생들이 '가장 설득력 있던 대표'를 고르고, 칠판에는 득표 막대와 찬성·반대 합계가 나옵니다.</span><button class="gold" id="pvOpen" ${ok ? "" : "disabled"}>청중 투표 시작</button>${ok ? "" : `<span class="muted" style="font-size:.82rem">위에서 대표를 2명 이상 고르세요.</span>`}</div>`;
+    if ($("pvOpen")) $("pvOpen").onclick = () => { const pro = reps.slice(0, 2).filter(Boolean), con = reps.slice(2).filter(Boolean); snap(); S.pvote = { day: S.day, cands: [...pro, ...con], np: pro.length, open: true, counts: {}, n: 0, at: NET.now() }; S.plaza[S.day] = Object.assign({}, S.plaza[S.day] || {}, { reps }); save(); teacherPVWatch(); renderPVoteCtl(); schedulePublish(); };
+    return;
+  }
+  const c = p.counts || {}, tot = side => p.cands.filter(s => pvSide(p, s) === side).reduce((a, s) => a + (c["s" + s] || 0), 0);
+  const e = Object.entries(c).sort((a, b) => b[1] - a[1]), lead = e.length && (e.length < 2 || e[0][1] > e[1][1]) ? +e[0][0].slice(1) : null;
+  el.innerHTML = `<div class="tallyin"><div class="label" style="margin:0">청중 투표 ${p.open ? "진행 중" : "마감"} · ${p.n || 0}명</div>
+    <div>${p.cands.map(s => `<span class="chip ${pvSide(p, s)}">${s}번 ${c["s" + s] || 0}표</span>`).join(" ")} · 찬성 ${tot("pro")} : 반대 ${tot("con")}${lead ? ` → 청중상 <b>${lead}번</b>` : p.n ? ` → <b class="warn">동점</b>` : ""}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${p.open ? `<button class="gold" id="pvClose">투표 마감</button>` : `<button class="sm" id="pvReopen">다시 열기</button>`}<button class="sm" id="pvCancel">투표 취소</button></div>
+    ${!p.open ? `<span class="muted" style="font-size:.82rem">${lead ? "1위가 '청중상' 칸에 들어갔습니다. 심판단 판정까지 고른 뒤 '광장 결과 저장'을 누르세요." : "동점이면 청중상을 직접 고르세요."}</span>` : ""}</div>`;
+  const setAud = () => { if (lead && $("pAud")) { if (![...$("pAud").options].some(o => +o.value === lead)) $("pAud").innerHTML += `<option value="${lead}">${lead}번</option>`; $("pAud").value = lead; } };
+  if ($("pvClose")) $("pvClose").onclick = () => { snap(); p.open = false; save(); setAud(); renderPVoteCtl(); schedulePublish(); };
+  if ($("pvReopen")) $("pvReopen").onclick = () => { p.open = true; save(); renderPVoteCtl(); schedulePublish(); };
+  if ($("pvCancel")) $("pvCancel").onclick = () => { snap(); S.pvote = null; save(); teacherPVWatch(); renderPVoteCtl(); schedulePublish(); };
+  if (!p.open) setAud();
+}
+let pvMsg = "", pvSeen = null;
+function renderPVote() {
+  const box = $("pvoteBox"); if (!box) return;
+  const c = parseCode($("code").value), last = store.get("ssi-last4");
+  const e = c && last && last.code === c.code ? liveFor(c.code) : null, seat = +$("seat").value;
+  const p = e && e.phase === "광장 대표토론" && e.pvote;
+  if (!p) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const k = `ssi-pv-${c.code}-${p.day}-${seat}`, mine = ss.get(k), isRep = p.cands.includes(seat);
+  if (p.open && pvSeen !== p.at) { pvSeen = p.at; try { if (navigator.vibrate) navigator.vibrate(150); } catch {} goSlide("now", false); }
+  box.innerHTML = `<div class="votep pvp"><h3>광장 대표토론 · 청중 투표 ${p.open ? "" : "(마감)"}</h3><p>${isRep ? "대표는 투표하지 않습니다. 결과를 기다리세요!" : p.open ? "가장 설득력 있던 대표를 고르세요. 내 입장과 상관없이, 근거와 말하기가 가장 좋았던 사람!" : "투표가 마감되었습니다."}</p>
+    <div class="votegrid">${p.cands.map(s => `<button type="button" class="voteb pv ${pvSide(p, s)} ${mine === s ? "on" : ""}" data-pv="${s}" ${!p.open || isRep ? "disabled" : ""}>${s}번<small>${pvSide(p, s) === "pro" ? "찬성 대표" : "반대 대표"}</small></button>`).join("")}</div>
+    <p class="nmsg">${esc(pvMsg || (mine ? `${mine}번에 투표했습니다` : ""))}</p></div>`;
+  box.querySelectorAll("[data-pv]").forEach(b => b.onclick = async () => {
+    const s = +b.dataset.pv; pvMsg = "보내는 중…"; renderPVote();
+    try { await NET.ensureAnon(); await NET.put(`${roomPath(c.code)}/votes/a${p.day}/s${seat}`, { uid: NET.user.uid, k: "m", target: s, t: NET.stamp() }); ss.set(k, s); pvMsg = ""; }
+    catch (err) { pvMsg = "전송 실패. 다시 눌러 주세요."; }
+    renderPVote();
+  });
+}
+function boardPVoteHTML(e) {
+  const p = e.pvote; if (!p || e.phase !== "광장 대표토론") return "";
+  const c = p.counts || {}, mx = Math.max(1, ...p.cands.map(s => c["s" + s] || 0)), tot = side => p.cands.filter(s => pvSide(p, s) === side).reduce((a, s) => a + (c["s" + s] || 0), 0);
+  return `<div class="bvote"><div class="bvhead pv">청중 투표 ${p.open ? "진행 중" : "마감"} · ${p.n || 0}명 · <span class="pro">찬성 ${tot("pro")}</span> : <span class="con">반대 ${tot("con")}</span></div>${p.cands.map(s => { const n = c["s" + s] || 0; return `<div class="bvrow"><span>${s}번</span><i class="${pvSide(p, s)}" style="width:${Math.round(n / mx * 100)}%"></i><b>${n}</b></div>`; }).join("")}</div>`;
+}
