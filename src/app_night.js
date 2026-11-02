@@ -780,5 +780,6 @@ const JOINT_FRAME = () => `<div class="kicker">합의안 발표 틀</div><h2>찬
   <div class="tipbody" style="background:rgba(76,192,143,.12);border-color:var(--judge,#4CC08F)">"우리 구역은 찬성 쪽 근거 ________ 와 반대 쪽 근거 ________ 를 모두 고려하여, ________ 라는 조건(또는 대안)으로 ________ 하자는 데 합의했다."</div>
   <div class="items"><div class="item"><small>체크 ①</small>양쪽 근거를 모두 담았나?</div><div class="item"><small>체크 ②</small>조건이나 대안을 제시했나?</div><div class="item"><small>발표</small>구역 대표 1명이 30초 안에 발표 (찬성 1명 + 반대 1명이 함께 나와도 좋아요)</div></div>
   <button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
-function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${S.joint ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
+function jointOn() { return !!S && S.joint !== false; }
+function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${jointOn() ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
 function bindJointToggle() { const b = $("jointOn"); if (b) b.onchange = () => { snap(); S.joint = b.checked; save(); buildPhases(); restoreRun(); renderAllT(); schedulePublish(); }; }

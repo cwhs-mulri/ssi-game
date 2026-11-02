@@ -3032,7 +3032,8 @@ const JOINT_FRAME = () => `<div class="kicker">합의안 발표 틀</div><h2>찬
   <div class="tipbody" style="background:rgba(76,192,143,.12);border-color:var(--judge,#4CC08F)">"우리 구역은 찬성 쪽 근거 ________ 와 반대 쪽 근거 ________ 를 모두 고려하여, ________ 라는 조건(또는 대안)으로 ________ 하자는 데 합의했다."</div>
   <div class="items"><div class="item"><small>체크 ①</small>양쪽 근거를 모두 담았나?</div><div class="item"><small>체크 ②</small>조건이나 대안을 제시했나?</div><div class="item"><small>발표</small>구역 대표 1명이 30초 안에 발표 (찬성 1명 + 반대 1명이 함께 나와도 좋아요)</div></div>
   <button class="primary" id="stageClose" style="justify-self:end">닫기</button>`;
-function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${S.joint ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
+function jointOn() { return !!S && S.joint !== false; }
+function jointToggleUI() { return `<label class="f jointopt"><span><input type="checkbox" id="jointOn" ${jointOn() ? "checked" : ""}> 찬반 합의안 시간 넣기 (토론 뒤 3분 · 심판 체크 +2점까지)</span></label>`; }
 function bindJointToggle() { const b = $("jointOn"); if (b) b.onchange = () => { snap(); S.joint = b.checked; save(); buildPhases(); restoreRun(); renderAllT(); schedulePublish(); }; }
 
 // ---------------- student ----------------
@@ -3075,7 +3076,7 @@ function renderLive() {
     <div><span class="phone ${pc}">${pt}</span></div>
     ${e.news && e.news.length ? `<div class="news">${e.news.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>` : ""}
     ${liveFlash ? `<div class="flash">${esc(liveFlash)}</div>` : ""}
-    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1030-1523</span></div>`;
+    <span class="muted" style="font-size:.8rem">선생님이 단계를 넘기면 이 화면이 자동으로 바뀝니다 · ${hhmm(e.updated)} 업데이트 · v1102-0956</span></div>`;
   if (+$("day").value !== e.day) {
     $("day").value = e.day; const l = store.get("ssi-last4"); if (l) { l.day = e.day; store.set("ssi-last4", l); }
     if ($("case")) { showCard(false); liveFlash = `DAY ${e.day} 카드로 바뀌었습니다. 밤에 다시 열어 보세요.`; renderLive(); }
@@ -3216,7 +3217,7 @@ function renderStep() {
     P.innerHTML = `${head("debate", `DAY ${d} 구역 토론 · ${esc(TOPICS[dayTopic(c, d)].name)}`, "작전 회의 → 입론 → 검색 → 반론 → 심판 판정 순서로 진행합니다.")}
       <div class="subphase">${subs.map(([p, i]) => `<button class="${i === pi ? "on" : ""}" data-p="${i}">${p[0]} ${Math.round(p[1] / 60)}분</button>`).join("")}</div>
       ${phases[pi] && phases[pi][4] === "debate" ? `<div class="say"><b>사회자 멘트 · ${esc(phases[pi][0])}</b>${esc(phases[pi][2])}</div>` : sayBox("debate")}
-      <div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${S.joint ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}<button class="danger" id="tipShow" ${S.tip && S.tip.day !== d || d === 1 || S.ended ? "disabled" : ""}>익명 제보 띄우기 (시즌 1회)</button>
+      <div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${jointOn() ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}<button class="danger" id="tipShow" ${S.tip && S.tip.day !== d || d === 1 || S.ended ? "disabled" : ""}>익명 제보 띄우기 (시즌 1회)</button>
       ${S.tip && S.tip.day === d ? `<label class="f" for="tipDist">제보를 먼저 반박한 구역<select id="tipDist"><option value="">—</option>${R.D.map((_, di) => `<option value="${di}" ${S.tip.dist === di ? "selected" : ""}>${di + 1}구역</option>`).join("")}</select></label><button class="gold" id="tipSave">+2 주기</button>` : `<span class="muted" style="font-size:.85rem">${S.tip ? `익명 제보는 DAY ${S.tip.day}에 사용함` : "마피아가 휴대폰으로 제보하면 자동으로 뜹니다. 직접 띄워도 됩니다"}</span>`}</div>
       <p class="label" style="margin:6px 0 0">심판 보고 입력 (체크 0~3 · 거짓 적발 수 · MVP)</p>
       <div class="grid4">${R.D.map((m, di) => { const x = j[di] || {}, debaters = m.filter(s => s !== R.judges[di]); const ww = x.pro == null ? "" : (+x.pro > +x.con ? `<b>찬성 승리</b>` : +x.con > +x.pro ? `<b>반대 승리</b>` : "<b>무승부</b>"); return `<div class="dcard"><h3>${di + 1}구역 <span>${m.join("·")}번 · 심판 ${R.judges[di]}번</span></h3>
@@ -3358,7 +3359,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("stage"
 let pubTimer = null, booted = false;
 function liveEntry() {
   const p = phases[pi];
-  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, vote: p[4] === "trial" && tvState() ? { day: S.day, cands: tvState().cands, open: tvState().open, counts: tvState().counts || {}, n: tvState().n || 0, at: tvState().at } : null, joint: !!S.joint, stage: stageLive, layout: S.layout || null, tipUsed: !!S.tip, dodo: dodoPending(), verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out: caughtBefore(S.day), updated: NET.now() };
+  return { cls: CLASSES[cls], day: S.day, days: S.days, pi, total: phases.length, phase: p[0], dur: p[1], running, endsAt: running ? NET.now() + remain * 1000 : null, remain, news: p[4] === "news" ? newsItems() : null, vote: p[4] === "trial" && tvState() ? { day: S.day, cands: tvState().cands, open: tvState().open, counts: tvState().counts || {}, n: tvState().n || 0, at: tvState().at } : null, joint: jointOn(), stage: stageLive, layout: S.layout || null, tipUsed: !!S.tip, dodo: dodoPending(), verdict: (() => { if (p[4] !== "trial") return null; const t = S.trials.filter(x => x[0] === S.day).slice(-1)[0]; return t ? { day: t[0], seat: t[1], hit: !!t[2], dodo: !!(S.dodo && S.dodo.seat === t[1] && t[0] >= S.dodo.day) } : null; })(), scores: p[4] === "wrap" ? compute().totals : null, alert: p[4] === "news" && S.dodo && S.dodo.seat && S.dodo.day === S.day ? { k: "dodo", day: S.day } : null, out: caughtBefore(S.day), updated: NET.now() };
 }
 function schedulePublish() { if (!booted || $("viewTeacher").hidden) return; clearTimeout(pubTimer); pubTimer = setTimeout(pushLive, 250); }
 $("syncBtn").onclick = async () => { try { if (NET.isTeacher()) await NET.logout(); else await NET.teacherLogin(); } catch (e) { setSync("err", "로그인 실패 " + ((e && e.code) || "")); } };
@@ -3390,7 +3391,7 @@ function buildPhases() {
     ["입론", 180, `"찬성부터 입론을 시작하세요. 한 사람당 30초, 발언 틀을 사용하세요."`, "", "debate"],
     ["검색", 120, `"검색 시간입니다. 확인할 상대 근거를 먼저 말하고 휴대폰을 드세요."`, "", "debate"],
     ["반론·질문", plaza ? 120 : 180, `"휴대폰을 내려놓으세요. 질문 카드를 사용해 반론하세요. 심판은 출처 화면을 요구할 수 있습니다."`, "", "debate"],
-    ...(S.joint ? [["합의안", 180, `"찬성과 반대가 함께 모이세요. 2분 동안 양쪽 근거를 모두 담은 우리 구역 합의안을 만들고, 구역별로 30초씩 발표합니다."`, "", "debate"]] : []),
+    ...(jointOn() ? [["합의안", 180, `"찬성과 반대가 함께 모이세요. 2분 동안 양쪽 근거를 모두 담은 우리 구역 합의안을 만들고, 구역별로 30초씩 발표합니다."`, "", "debate"]] : []),
     ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);
   if (plaza) phases.push(["광장 대표토론", 300, `"광장이 열렸습니다. 찬성 대표 두 명, 반대 대표 두 명은 앞으로 나오세요. 한 사람당 30초 입론 후 자유 반론입니다."`, "", "plaza"]);
   if (d > 1) phases.push(["광장 재판", 180, `"각 구역은 가장 의심스러운 사람 한 명을 지명하세요. 지명된 사람은 15초 동안 해명하세요. … 셋, 둘, 하나 하면 마피아라고 생각하는 사람을 가리키세요!"`, "", "trial"]);

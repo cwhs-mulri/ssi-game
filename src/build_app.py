@@ -296,14 +296,14 @@ js = R(js, 'function endIdle() {\n  const area = $("endArea"); if (!area) return
 js = R(js, 'stage: stageLive, layout:', 'vote: p[4] === "trial" && tvState() ? { day: S.day, cands: tvState().cands, open: tvState().open, counts: tvState().counts || {}, n: tvState().n || 0, at: tvState().at } : null, stage: stageLive, layout:')
 js = R(js, '"광장 재판": ["의심스러운 사람을 지명하고, 신호에 맞춰 동시에 가리키세요.", "down"]', '"광장 재판": ["지명된 사람의 해명을 듣고, 투표가 열리면 휴대폰으로 익명 투표하세요.", "card"]')
 # (prepared) joint statement phase
-js = R(js, '    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);', '    ...(S.joint ? [["합의안", 180, `"찬성과 반대가 함께 모이세요. 2분 동안 양쪽 근거를 모두 담은 우리 구역 합의안을 만들고, 구역별로 30초씩 발표합니다."`, "", "debate"]] : []),\n    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);')
+js = R(js, '    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);', '    ...(jointOn() ? [["합의안", 180, `"찬성과 반대가 함께 모이세요. 2분 동안 양쪽 근거를 모두 담은 우리 구역 합의안을 만들고, 구역별로 30초씩 발표합니다."`, "", "debate"]] : []),\n    ["심판 판정", 60, `"심판은 판정 결과와 오늘의 MVP를 발표하세요."`, "", "debate"]);')
 js = R(js, '    (st.extra[d] || []).forEach((v, di) => { if (v) add(d, di, v); });', '    Object.entries(st.judge[d] || {}).forEach(([di, x]) => { if (x && x.joint) add(d, +di, +x.joint); });\n    (st.extra[d] || []).forEach((v, di) => { if (v) add(d, di, v); });')
 js = R(js, 'const STU = { ', 'const STU = { "합의안": ["찬성과 반대가 함께 모여 우리 구역의 합의안을 만드세요. 양쪽 근거를 모두 담고, 조건이나 대안을 붙이세요.", "card"], ')
 js = R(js, '<span id="newArea" style="flex:', '${jointToggleUI()}<span id="newArea" style="flex:')
 js = R(js, 'bindSetupGuide(); bindLayout();', 'bindSetupGuide(); bindLayout(); bindJointToggle();')
-js = R(js, '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>', '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${S.joint ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}')
+js = R(js, '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>', '<div class="rowx"><button id="frameBtn">발언 틀·질문 카드 띄우기</button>${jointOn() ? `<button id="jointBtn">합의안 발표 틀 띄우기</button>` : ""}')
 js = R(js, '    $("frameBtn").onclick = showFrame;', '    $("frameBtn").onclick = showFrame; if ($("jointBtn")) $("jointBtn").onclick = () => { stageLive = { k: "joint", at: NET.now() }; schedulePublish(); showStage(JOINT_FRAME()); };')
-js = R(js, 'stage: stageLive, layout:', 'joint: !!S.joint, stage: stageLive, layout:')
+js = R(js, 'stage: stageLive, layout:', 'joint: jointOn(), stage: stageLive, layout:')
 # insert net + night code before the student section
 mark = '// ---------------- student ----------------'
 js = R(js, mark, night + '\n' + mark)
